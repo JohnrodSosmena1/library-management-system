@@ -85,11 +85,14 @@ class BorrowingController extends Controller
             'status'        => 'Borrowed',
         ]);
 
-        // Mark book as borrowed
-        $book->update(['status' => 'Borrowed']);
+        // Mark book as borrowed and decrement quantity
+        $book->update([
+            'status'   => 'Borrowed',
+            'quantity' => max(0, $book->quantity - 1),
+        ]);
 
         return redirect()->route('transactions.index')
-            ->with('success', "{$borrowing->formatted_id} created — \"{$book->title}\" borrowed successfully.");
+            ->with('success', "{$borrowing->formatted_id} created — \"{$book->title}\" borrowed successfully (Quantity: {$book->quantity}).");
     }
 
     // ── Return ───────────────────────────────────────────────
@@ -127,8 +130,11 @@ class BorrowingController extends Controller
             'penalty'     => $penalty,
         ]);
 
-        // Mark book as available again
-        $borrowing->book->update(['status' => 'Available']);
+        // Mark book as available again and increment quantity
+        $borrowing->book->update([
+            'status'   => 'Available',
+            'quantity' => $borrowing->book->quantity + 1,
+        ]);
 
         $msg = $penalty > 0
             ? "\"{$borrowing->book->title}\" returned with a penalty of ₱{$penalty}."
