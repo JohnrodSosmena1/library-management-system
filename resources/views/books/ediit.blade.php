@@ -126,23 +126,45 @@
                     <p class="small text-muted">Remove this book from inventory permanently.</p>
                     
                     @if(!$book->borrowings()->active()->exists())
-                        <form action="{{ route('books.destroy', $book) }}" method="POST" class="mt-3">
+                        <button 
+                            type="button" 
+                            class="btn btn-danger"
+                            onclick="document.getElementById('delete-form-{{ $book->id }}').style.display='block'"
+                        >
+                            <i class="bi bi-trash"></i> Delete Book
+                        </button>
+
+                        <form id="delete-form-{{ $book->id }}" action="{{ route('books.destroy', $book) }}" method="POST" class="mt-3" style="display:none;">
                             @csrf @method('DELETE')
-                            <div class="mb-3">
-                                <label for="reason" class="form-label">Reason for Deletion *</label>
-                                <textarea 
-                                    class="form-control @error('reason') is-invalid @enderror" 
-                                    id="reason"
-                                    name="reason"
-                                    rows="2"
-                                    placeholder="e.g., Damaged, Obsolete, Lost"
-                                    required
-                                ></textarea>
-                                @error('reason')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            <div class="card card-body bg-danger-subtle border-danger">
+                                <h6 class="text-danger mb-3">⚠️ Confirm Deletion</h6>
+                                <p class="small text-muted">Enter the reason for deleting "<strong>{{ $book->title }}</strong>":</p>
+                                
+                                <div class="mb-3">
+                                    <textarea 
+                                        class="form-control @error('reason') is-invalid @enderror" 
+                                        id="reason"
+                                        name="reason"
+                                        rows="2"
+                                        placeholder="e.g., Damaged, Obsolete, Lost, Theft"
+                                        required
+                                    ></textarea>
+                                    @error('reason')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                </div>
+
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-danger">
+                                        <i class="bi bi-check-circle"></i> Confirm Delete
+                                    </button>
+                                    <button 
+                                        type="button" 
+                                        class="btn btn-secondary"
+                                        onclick="document.getElementById('delete-form-{{ $book->id }}').style.display='none'"
+                                    >
+                                        <i class="bi bi-x-circle"></i> Cancel
+                                    </button>
+                                </div>
                             </div>
-                            <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure? This cannot be undone.')">
-                                <i class="bi bi-trash"></i> Delete Book
-                            </button>
                         </form>
                     @else
                         <div class="alert alert-warning small mb-0">

@@ -91,12 +91,13 @@
                                 <a href="{{ route('books.edit', $book) }}" class="btn btn-sm btn-warning">
                                     <i class="bi bi-pencil"></i> Edit
                                 </a>
-                                <form action="{{ route('books.destroy', $book) }}" method="POST" style="display:inline;">
-                                    @csrf @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this book?')">
-                                        <i class="bi bi-trash"></i> Delete
-                                    </button>
-                                </form>
+                                <button 
+                                    type="button" 
+                                    class="btn btn-sm btn-danger"
+                                    onclick="showDeleteModal('{{ $book->id }}', '{{ addslashes($book->title) }}')"
+                                >
+                                    <i class="bi bi-trash"></i> Delete
+                                </button>
                             </td>
                         </tr>
                     @endforeach
@@ -114,4 +115,52 @@
         </div>
     @endif
 </div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteModalLabel">⚠️ Delete Book</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="deleteForm" method="POST">
+                @csrf @method('DELETE')
+                <div class="modal-body">
+                    <p>Are you sure you want to delete <strong id="bookTitle"></strong>? This action cannot be undone.</p>
+                    <div class="mb-3">
+                        <label for="deleteReason" class="form-label">Reason for deletion *</label>
+                        <textarea 
+                            id="deleteReason" 
+                            name="reason" 
+                            class="form-control" 
+                            rows="3"
+                            placeholder="e.g., Damaged, Obsolete, Lost, Theft"
+                            required
+                        ></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Delete Book
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+function showDeleteModal(bookId, bookTitle) {
+    document.getElementById('bookTitle').textContent = bookTitle;
+    document.getElementById('deleteReason').value = '';
+    document.getElementById('deleteForm').action = `/books/${bookId}`;
+    
+    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    modal.show();
+}
+</script>
+@endpush
 @endsection
