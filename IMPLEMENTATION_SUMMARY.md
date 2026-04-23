@@ -8,32 +8,35 @@ Your library management system now **fully satisfies all requirements** outlined
 
 ## 📋 Requirements Fulfillment
 
-| Requirement | Status | Implementation |
-|---|---|---|
-| **Add Book** | ✅ **COMPLETE** | Create new books with author, title, category, ISBN, quantity |
-| **Update Book Information** | ✅ **COMPLETE** | Edit all book fields; changes override previous details |
-| **Delete Book Record** | ✅ **COMPLETE** | Remove books with safety check (prevents deletion if borrowed) |
-| **Search/View Books** | ✅ **COMPLETE** | Multi-field search by title/author/ISBN + filter by status/category |
-| **Borrow Book** | ✅ **COMPLETE** | Request processing with eligibility validation + 30-day loan period |
-| **Return Book** | ✅ **COMPLETE** | Record returns + auto-calculate penalties (₱5/day) for late returns |
-| **Inventory Management** | ✅ **COMPLETE** | Quantity tracking: decrements on borrow, increments on return |
-| **Book Status Tracking** | ✅ **COMPLETE** | Available/Borrowed/Overdue states auto-updated |
-| **Overdue Marking** | ✅ **COMPLETE** | Daily scheduler auto-marks overdue books |
-| **Librarian Recording** | ✅ **COMPLETE** | All transactions linked to processing librarian |
+| Requirement                 | Status          | Implementation                                                      |
+| --------------------------- | --------------- | ------------------------------------------------------------------- |
+| **Add Book**                | ✅ **COMPLETE** | Create new books with author, title, category, ISBN, quantity       |
+| **Update Book Information** | ✅ **COMPLETE** | Edit all book fields; changes override previous details             |
+| **Delete Book Record**      | ✅ **COMPLETE** | Remove books with safety check (prevents deletion if borrowed)      |
+| **Search/View Books**       | ✅ **COMPLETE** | Multi-field search by title/author/ISBN + filter by status/category |
+| **Borrow Book**             | ✅ **COMPLETE** | Request processing with eligibility validation + 30-day loan period |
+| **Return Book**             | ✅ **COMPLETE** | Record returns + auto-calculate penalties (₱5/day) for late returns |
+| **Inventory Management**    | ✅ **COMPLETE** | Quantity tracking: decrements on borrow, increments on return       |
+| **Book Status Tracking**    | ✅ **COMPLETE** | Available/Borrowed/Overdue states auto-updated                      |
+| **Overdue Marking**         | ✅ **COMPLETE** | Daily scheduler auto-marks overdue books                            |
+| **Librarian Recording**     | ✅ **COMPLETE** | All transactions linked to processing librarian                     |
 
 ---
 
 ## 🔧 Critical Fixes Applied
 
 ### 1. ✅ Database Schema Fixed
+
 **File**: `database/migrations/2026_04_23_000001_fix_borrowings_schema.php`
 
 **Issues Resolved:**
+
 - ✅ Renamed `borrow_date` → `date_borrowed` (schema-code alignment)
 - ✅ Added `librarian_id` foreign key (tracks staff who processed transaction)
 - ✅ Added `penalty` decimal field (₱5/day calculation)
 
-**Before**: 
+**Before**:
+
 ```sql
 CREATE TABLE borrowings (
   id, user_id, book_id, status, borrow_date, due_date, return_date
@@ -41,30 +44,36 @@ CREATE TABLE borrowings (
 ```
 
 **After**:
+
 ```sql
 CREATE TABLE borrowings (
-  id, user_id, book_id, librarian_id (FK), status, 
+  id, user_id, book_id, librarian_id (FK), status,
   date_borrowed, due_date, return_date, penalty
 )
 ```
 
 ### 2. ✅ User Model Alignment
+
 **File**: `database/migrations/2026_04_23_000002_adjust_users_table.php`
 
 **Changes:**
+
 - ✅ Made `password` nullable for library patrons (no authentication required)
 - ✅ Ensured `contact_no` field exists
 - ✅ Ensured `status` enum (Active/Inactive) field exists
 
 ### 3. ✅ Borrowing Controller Enhanced
+
 **File**: `app/Http/Controllers/BorrowingController.php`
 
 **Quantity Management Added:**
+
 - ✅ `store()` method: Decrements book quantity when borrowed
 - ✅ `processReturn()` method: Increments book quantity when returned
 - ✅ Prevents quantity going below zero
 
 **Example Logic:**
+
 ```php
 // On borrow
 $book->update([
@@ -80,9 +89,11 @@ $borrowing->book->update([
 ```
 
 ### 4. ✅ Laravel Scheduler Configured
+
 **File**: `app/Console/Kernel.php`
 
 **Automatic Overdue Marking:**
+
 - ✅ Runs daily at midnight (configurable)
 - ✅ Calls `BorrowingController::markOverdue()`
 - ✅ Auto-updates book status to "Overdue"
@@ -98,21 +109,22 @@ $schedule->call(function () {
 
 ## 🎨 View Files Completed
 
-| View File | Purpose | Status |
-|---|---|---|
-| `resources/views/books/index.blade.php` | Book listing with search/filter | ✅ Complete |
-| `resources/views/books/create.blade.php` | Add new book form | ✅ Complete |
-| `resources/views/books/edit.blade.php` | Edit book form with delete zone | ✅ Complete |
-| `resources/views/categories/index.blade.php` | Category management | ✅ Complete |
-| `resources/views/borrowform/form.blade.php` | Borrow book form | ✅ Already Complete |
-| `resources/views/returnform/form.blade.php` | Return book form | ✅ Already Complete |
-| `resources/views/transactions/index.blade.php` | Transaction history | ✅ Already Complete |
+| View File                                      | Purpose                         | Status              |
+| ---------------------------------------------- | ------------------------------- | ------------------- |
+| `resources/views/books/index.blade.php`        | Book listing with search/filter | ✅ Complete         |
+| `resources/views/books/create.blade.php`       | Add new book form               | ✅ Complete         |
+| `resources/views/books/edit.blade.php`         | Edit book form with delete zone | ✅ Complete         |
+| `resources/views/categories/index.blade.php`   | Category management             | ✅ Complete         |
+| `resources/views/borrowform/form.blade.php`    | Borrow book form                | ✅ Already Complete |
+| `resources/views/returnform/form.blade.php`    | Return book form                | ✅ Already Complete |
+| `resources/views/transactions/index.blade.php` | Transaction history             | ✅ Already Complete |
 
 ---
 
 ## 🗄️ Database Structure
 
 ### borrowings Table (Final Schema)
+
 ```sql
 CREATE TABLE borrowings (
   id: bigint PK,
@@ -129,6 +141,7 @@ CREATE TABLE borrowings (
 ```
 
 ### books Table
+
 ```sql
 CREATE TABLE books (
   id: bigint PK,
@@ -148,6 +161,7 @@ CREATE TABLE books (
 ## 🎯 Business Logic Implementation
 
 ### Eligibility Check (Max 3 Active Borrows + No Overdue)
+
 ```php
 public static function checkEligibility(int $userId): array
 {
@@ -158,16 +172,17 @@ public static function checkEligibility(int $userId): array
     if ($hasOverdue) {
         return ['eligible' => false, 'message' => 'User has overdue book(s)'];
     }
-    
+
     if ($active >= self::BORROW_LIMIT) {
         return ['eligible' => false, 'message' => 'Borrowing limit reached'];
     }
-    
+
     return ['eligible' => true];
 }
 ```
 
 ### Penalty Calculation (₱5/day)
+
 ```php
 const PENALTY_RATE = 5.00; // PHP per day
 const LOAN_DAYS = 30;
@@ -183,12 +198,14 @@ public function getComputedPenaltyAttribute(): float
 ## 🚀 Running the Application
 
 ### Database Setup (Already Done)
+
 ```bash
 php artisan migrate --force
 php artisan db:seed --class=LibrarySeeder
 ```
 
 ### Scheduler Setup (For Production)
+
 ```bash
 # Add to crontab to run every minute
 * * * * * cd /path/to/library && php artisan schedule:run >> /dev/null 2>&1
@@ -198,7 +215,9 @@ php artisan schedule:work
 ```
 
 ### Sample Data Loaded
+
 The seeder creates:
+
 - ✅ 3 library patrons (students/researchers)
 - ✅ 3 librarians (Head Librarian, Librarian, Staff)
 - ✅ 6 book categories
@@ -261,6 +280,7 @@ USER RETURNS BOOK:
 ## 📝 Models Reference
 
 ### Book Model
+
 ```php
 class Book extends Model {
     // ✅ Status: Available, Borrowed, Overdue
@@ -271,6 +291,7 @@ class Book extends Model {
 ```
 
 ### Borrowing Model
+
 ```php
 class Borrowing extends Model {
     // ✅ LOAN_DAYS = 30
@@ -282,6 +303,7 @@ class Borrowing extends Model {
 ```
 
 ### User Model
+
 ```php
 class User extends Model {
     // ✅ Library patron (student/researcher)
@@ -291,6 +313,7 @@ class User extends Model {
 ```
 
 ### Librarian Model
+
 ```php
 class Librarian extends Model {
     // ✅ Authentication for staff
@@ -317,6 +340,7 @@ class Librarian extends Model {
 ## 📞 Support
 
 All transactions now follow the documented business process:
+
 - ✅ Book management (Add, Update, Delete, Search)
 - ✅ Borrowing workflow with eligibility checks
 - ✅ Return processing with penalty calculation
