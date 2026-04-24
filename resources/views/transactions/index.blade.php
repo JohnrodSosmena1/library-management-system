@@ -1,74 +1,110 @@
 @extends('layouts.app')
 
-@section('title', 'Transactions')
-@section('page-title', 'Transactions')
-@section('page-sub', 'Complete borrowing history')
-
 @section('content')
-<div class="panel">
-    <div class="panel-head">
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <div class="panel-title">All Transactions</div>
-            <div class="panel-sub">{{ $transactions->total() }} records total</div>
+            <h1>📋 Transactions</h1>
+            <p class="text-muted mb-0">Complete borrowing history</p>
         </div>
     </div>
 
-    <form method="GET" action="{{ route('transactions.index') }}" class="toolbar">
-        <div class="search-wrap">
-            <span class="search-icon">🔍</span>
-            <input type="text" name="search" placeholder="Search user, book…"
-                   value="{{ request('search') }}">
+    <!-- Search & Filter Section -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ route('transactions.index') }}" class="row g-3">
+                <div class="col-md-5">
+                    <input 
+                        type="text" 
+                        name="search" 
+                        class="form-control" 
+                        placeholder="Search user, book…"
+                        value="{{ request('search') }}"
+                    >
+                </div>
+                <div class="col-md-4">
+                    <select name="status" class="form-select">
+                        <option value="">-- All Status --</option>
+                        <option value="Borrowed" {{ request('status') === 'Borrowed' ? 'selected' : '' }}>Borrowed</option>
+                        <option value="Overdue" {{ request('status') === 'Overdue' ? 'selected' : '' }}>Overdue</option>
+                        <option value="Returned" {{ request('status') === 'Returned' ? 'selected' : '' }}>Returned</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success flex-grow-1">
+                            <i class="bi bi-search"></i> Search
+                        </button>
+                        @if(request()->hasAny(['search','status']))
+                            <a href="{{ route('transactions.index') }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-counterclockwise"></i> Clear
+                            </a>
+                        @endif
+                    </div>
+                </div>
+            </form>
         </div>
-        <select name="status" class="filter" onchange="this.form.submit()">
-            <option value="">All Status</option>
-            @foreach(['Borrowed','Overdue','Returned'] as $s)
-                <option value="{{ $s }}" {{ request('status') === $s ? 'selected' : '' }}>{{ $s }}</option>
-            @endforeach
-        </select>
-        <button type="submit" class="btn">Search</button>
-        @if(request()->hasAny(['search','status']))
-            <a href="{{ route('transactions.index') }}" class="btn">Clear</a>
-        @endif
-    </form>
+    </div>
 
+    <!-- Transactions Table -->
     @if($transactions->isEmpty())
-        <div class="empty">
-            <div class="empty-icon">📋</div>
-            <div class="empty-text">No transactions found</div>
+        <div class="card shadow-sm">
+            <div class="card-body text-center py-5">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">📋</div>
+                <h5 class="text-muted">No transactions found</h5>
+                <p class="text-muted mb-0">Try adjusting your search or filter criteria</p>
+            </div>
         </div>
     @else
-        <table>
-            <thead>
-                <tr>
-                    <th>Txn ID</th>
-                    <th>User</th>
-                    <th>Book</th>
-                    <th>Borrowed</th>
-                    <th>Due</th>
-                    <th>Returned</th>
-                    <th>Status</th>
-                    <th>Fine</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($transactions as $txn)
-                    <tr class="{{ $txn->status === 'Overdue' ? 'overdue-row' : '' }}">
-                        <td class="mono">{{ $txn->formatted_id }}</td>
-                        <td>{{ $txn->user->name }}</td>
-                        <td class="bold">{{ $txn->book->title }}</td>
-                        <td class="mono muted">{{ $txn->date_borrowed->format('M d, Y') }}</td>
-                        <td class="mono muted">{{ $txn->due_date->format('M d, Y') }}</td>
-                        <td class="mono muted">{{ $txn->return_date ? $txn->return_date->format('M d, Y') : '—' }}</td>
-                        <td>@include('partials.badge', ['status' => $txn->status])</td>
-                        <td class="{{ $txn->days_late > 0 ? 'red' : 'muted' }}">
-                            {{ $txn->days_late > 0 ? '₱'.number_format($txn->computed_penalty, 2) : '—' }}
-                        </td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
-        <div class="pagination-wrap">
-            {{ $transactions->links('partials.pagination') }}
+        <div class="card shadow-sm">
+            <div class="card-header bg-light p-3">
+                <span class="fw-bold">{{ $transactions->total() }} records total</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Txn ID</th>
+                            <th>User</th>
+                            <th>Book</th>
+                            <th>Borrowed</th>
+                            <th>Due</th>
+                            <th>Returned</th>
+                            <th>Status</th>
+                            <th>Fine</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($transactions as $txn)
+                            <tr class="{{ $txn->status === 'Overdue' ? 'table-danger' : '' }}">
+                                <td><strong class="font-monospace">{{ $txn->formatted_id }}</strong></td>
+                                <td>{{ $txn->user->name }}</td>
+                                <td class="fw-bold">{{ $txn->book->title }}</td>
+                                <td class="text-muted font-monospace">{{ $txn->date_borrowed->format('M d, Y') }}</td>
+                                <td class="text-muted font-monospace">{{ $txn->due_date->format('M d, Y') }}</td>
+                                <td class="text-muted font-monospace">{{ $txn->return_date ? $txn->return_date->format('M d, Y') : '—' }}</td>
+                                <td>
+                                    @if($txn->status === 'Returned')
+                                        <span class="badge bg-success">Returned</span>
+                                    @elseif($txn->status === 'Overdue')
+                                        <span class="badge bg-danger">Overdue</span>
+                                    @else
+                                        <span class="badge bg-warning text-dark">Borrowed</span>
+                                    @endif
+                                </td>
+                                <td class="{{ $txn->days_late > 0 ? 'text-danger fw-bold' : 'text-muted' }}">
+                                    {{ $txn->days_late > 0 ? '₱'.number_format($txn->computed_penalty, 2) : '—' }}
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="d-flex justify-content-center mt-4">
+            {{ $transactions->links('pagination') }}
         </div>
     @endif
 </div>

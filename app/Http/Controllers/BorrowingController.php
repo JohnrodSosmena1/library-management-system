@@ -104,7 +104,7 @@ class BorrowingController extends Controller
             ->latest()
             ->get();
 
-        return view('return.form', compact('activeBorrowings'));
+        return view('returnform.form', compact('activeBorrowings'));
     }
 
     public function processReturn(Request $request): RedirectResponse

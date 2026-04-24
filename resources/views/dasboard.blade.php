@@ -105,7 +105,7 @@
                                     </div>
                                     <small class="text-muted d-block">
                                         <i class="bi bi-calendar3 me-1"></i>
-                                        {{ $txn->borrow_date->format('M d, Y') }}
+                                        {{ $txn->borrow_date?->format('M d, Y') ?? 'N/A' }}
                                         @if($txn->due_date)
                                             <span class="ms-3"><i class="bi bi-calendar-event me-1"></i>Due: {{ $txn->due_date->format('M d, Y') }}</span>
                                         @endif

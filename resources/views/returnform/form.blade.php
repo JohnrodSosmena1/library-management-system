@@ -1,92 +1,155 @@
 @extends('layouts.app')
 
-@section('title', 'Return Book')
-@section('page-title', 'Return a Book')
-@section('page-sub', 'Record a book return and compute penalties')
-
 @section('content')
-<div class="form-wrap">
-    <div class="panel">
-        <div class="panel-head">
-            <div class="panel-icon blue">↙</div>
-            <div>
-                <div class="panel-title">Process Book Return</div>
-                <div class="panel-sub">Penalty rate: ₱{{ \App\Models\Borrowing::PENALTY_RATE }}.00 per day overdue</div>
-            </div>
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>↙ Return Book</h1>
+            <p class="text-muted mb-0">Record a book return and compute penalties</p>
         </div>
+    </div>
 
-        <form method="POST" action="{{ route('return.process') }}" class="form-body" id="return-form">
-            @csrf
-
-            {{-- Transaction Select --}}
-            <div class="field">
-                <label class="field-label">Active Transaction <span class="req">*</span></label>
-                <select name="borrowing_id" id="txn-select"
-                        class="{{ $errors->has('borrowing_id') ? 'is-error' : '' }}">
-                    <option value="">— Select a transaction —</option>
-                    @foreach($activeBorrowings as $txn)
-                        <option value="{{ $txn->id }}"
-                                data-user="{{ $txn->user->name }}"
-                                data-book="{{ $txn->book->title }}"
-                                data-borrowed="{{ $txn->date_borrowed->format('Y-m-d') }}"
-                                data-due="{{ $txn->due_date->format('Y-m-d') }}"
-                                data-status="{{ $txn->status }}"
-                                data-days-late="{{ $txn->days_late }}"
-                                data-penalty="{{ $txn->computed_penalty }}"
-                                {{ old('borrowing_id') == $txn->id ? 'selected' : '' }}>
-                            {{ $txn->formatted_id }} — {{ $txn->user->name }} — {{ $txn->book->title }}
-                            @if($txn->status === 'Overdue') [OVERDUE] @endif
-                        </option>
-                    @endforeach
-                </select>
-                @error('borrowing_id')<div class="field-error">{{ $message }}</div>@enderror
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="alert alert-warning mb-4">
+                <i class="bi bi-exclamation-triangle"></i>
+                <strong>Penalty Rate:</strong> ₱{{ \App\Models\Borrowing::PENALTY_RATE }}.00 per day overdue
             </div>
 
-            {{-- Transaction Detail Box --}}
-            <div id="txn-detail" class="hidden">
-                <div class="info-box" style="margin-bottom:14px">
-                    <div class="info-row"><span class="info-label">User</span><span id="d-user"></span></div>
-                    <div class="info-row"><span class="info-label">Book</span><span id="d-book"></span></div>
-                    <div class="info-row"><span class="info-label">Date Borrowed</span><span id="d-borrowed"></span></div>
-                    <div class="info-row"><span class="info-label">Due Date</span><span id="d-due"></span></div>
-                    <div class="info-row"><span class="info-label">Status</span><span id="d-status"></span></div>
+            <form method="POST" action="{{ route('return.process') }}" id="return-form">
+                @csrf
+
+                <!-- Transaction Selection -->
+                <div class="mb-3">
+                    <label for="txn-select" class="form-label">
+                        Active Transaction <span class="text-danger">*</span>
+                    </label>
+                    <select name="borrowing_id" id="txn-select" class="form-select {{ $errors->has('borrowing_id') ? 'is-invalid' : '' }}">
+                        <option value="">— Select a transaction —</option>
+                        @foreach($activeBorrowings as $txn)
+                            <option value="{{ $txn->id }}"
+                                    data-user="{{ $txn->user->name }}"
+                                    data-book="{{ $txn->book->title }}"
+                                    data-borrowed="{{ $txn->date_borrowed->format('Y-m-d') }}"
+                                    data-due="{{ $txn->due_date->format('Y-m-d') }}"
+                                    data-status="{{ $txn->status }}"
+                                    data-days-late="{{ $txn->days_late }}"
+                                    data-penalty="{{ $txn->computed_penalty }}"
+                                    {{ old('borrowing_id') == $txn->id ? 'selected' : '' }}>
+                                {{ $txn->formatted_id }} — {{ $txn->user->name }} — {{ $txn->book->title }}
+                                @if($txn->status === 'Overdue') <span class="badge bg-danger">OVERDUE</span> @endif
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('borrowing_id')
+                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                    @enderror
                 </div>
 
-                <div id="penalty-box" class="hidden">
-                    <div class="alert-penalty">
-                        <div class="penalty-title">Penalty Calculation</div>
-                        <div class="info-row"><span>Days overdue</span><span id="p-days"></span></div>
-                        <div class="info-row"><span>Rate per day</span><span>₱{{ \App\Models\Borrowing::PENALTY_RATE }}.00</span></div>
-                        <div class="penalty-total"><span>Total Fine</span><span id="p-total"></span></div>
+                <!-- Transaction Detail Box -->
+                <div id="txn-detail" style="display: none;" class="mb-4">
+                    <!-- Transaction Details Card -->
+                    <div class="card bg-light mb-3">
+                        <div class="card-body">
+                            <h6 class="card-title">Transaction Details</h6>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <p class="mb-1"><small class="text-muted">User</small></p>
+                                    <p class="fw-bold" id="d-user">—</p>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <p class="mb-1"><small class="text-muted">Book</small></p>
+                                    <p class="fw-bold" id="d-book">—</p>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <p class="mb-1"><small class="text-muted">Date Borrowed</small></p>
+                                    <p class="fw-bold" id="d-borrowed">—</p>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <p class="mb-1"><small class="text-muted">Due Date</small></p>
+                                    <p class="fw-bold" id="d-due">—</p>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12 mb-0">
+                                    <p class="mb-1"><small class="text-muted">Status</small></p>
+                                    <p class="fw-bold" id="d-status">—</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Penalty Box -->
+                    <div id="penalty-box" style="display: none;" class="mb-3">
+                        <div class="alert alert-danger">
+                            <h6 class="alert-heading mb-2">
+                                <i class="bi bi-exclamation-circle"></i> Penalty Calculation
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p class="mb-1"><small>Days Overdue</small></p>
+                                    <p class="fw-bold mb-0" id="p-days">—</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1"><small>Rate per Day</small></p>
+                                    <p class="fw-bold mb-0">₱{{ \App\Models\Borrowing::PENALTY_RATE }}.00</p>
+                                </div>
+                            </div>
+                            <hr class="my-2">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p class="mb-0"><small>Total Fine</small></p>
+                                </div>
+                                <div class="col-md-6 text-end">
+                                    <p class="fw-bold text-danger mb-0 fs-5" id="p-total">₱0.00</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- No Penalty Box -->
+                    <div id="no-penalty-box" style="display: none;" class="mb-3">
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle"></i> <strong>✓ No penalty</strong> — Book returned on time!
+                        </div>
                     </div>
                 </div>
 
-                <div id="no-penalty-box" class="hidden">
-                    <div class="alert alert-green">✔ No penalty — returned on time.</div>
-                </div>
-            </div>
+                <!-- Return Fields -->
+                <div id="return-fields" style="display: none;">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="return-date" class="form-label">Return Date</label>
+                            <input type="date" name="return_date" id="return-date" class="form-control"
+                                   value="{{ old('return_date', date('Y-m-d')) }}">
+                            @error('return_date')
+                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="book-condition" class="form-label">Book Condition</label>
+                            <select name="book_condition" id="book-condition" class="form-select">
+                                <option value="Good">Good</option>
+                                <option value="Slightly damaged">Slightly Damaged</option>
+                                <option value="Damaged">Damaged</option>
+                            </select>
+                        </div>
+                    </div>
 
-            {{-- Return Fields --}}
-            <div id="return-fields" class="hidden">
-                <div class="field">
-                    <label class="field-label">Return Date</label>
-                    <input type="date" name="return_date" value="{{ old('return_date', date('Y-m-d')) }}">
-                    @error('return_date')<div class="field-error">{{ $message }}</div>@enderror
+                    <!-- Form Actions -->
+                    <div class="d-flex gap-2 mt-4">
+                        <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Confirm Return
+                        </button>
+                    </div>
                 </div>
-                <div class="field">
-                    <label class="field-label">Book Condition</label>
-                    <select name="book_condition">
-                        <option>Good</option>
-                        <option>Slightly damaged</option>
-                        <option>Damaged</option>
-                    </select>
-                </div>
-                <div class="form-actions">
-                    <a href="{{ route('dashboard') }}" class="btn">Cancel</a>
-                    <button type="submit" class="btn btn-primary">Confirm Return</button>
-                </div>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
 </div>
 @endsection
@@ -100,9 +163,12 @@ function fmtDate(str) {
 
 document.getElementById('txn-select').addEventListener('change', function () {
     const opt = this.options[this.selectedIndex];
+    const txnDetail = document.getElementById('txn-detail');
+    const returnFields = document.getElementById('return-fields');
+    
     if (!this.value) {
-        document.getElementById('txn-detail').classList.add('hidden');
-        document.getElementById('return-fields').classList.add('hidden');
+        txnDetail.style.display = 'none';
+        returnFields.style.display = 'none';
         return;
     }
 
@@ -114,7 +180,11 @@ document.getElementById('txn-select').addEventListener('change', function () {
     document.getElementById('d-book').textContent     = opt.dataset.book;
     document.getElementById('d-borrowed').textContent = fmtDate(opt.dataset.borrowed);
     document.getElementById('d-due').textContent      = fmtDate(opt.dataset.due);
-    document.getElementById('d-status').innerHTML     = `<span style="color:${status==='Overdue'?'var(--red)':'var(--amber)'}; font-weight:600">${status}${daysLate>0?' — '+daysLate+' days late':''}</span>`;
+    
+    const statusBadge = status === 'Overdue' 
+        ? `<span class="badge bg-danger">${status} — ${daysLate} days late</span>`
+        : `<span class="badge bg-success">${status}</span>`;
+    document.getElementById('d-status').innerHTML = statusBadge;
 
     const penaltyBox   = document.getElementById('penalty-box');
     const noPenaltyBox = document.getElementById('no-penalty-box');
@@ -122,15 +192,15 @@ document.getElementById('txn-select').addEventListener('change', function () {
     if (daysLate > 0) {
         document.getElementById('p-days').textContent  = daysLate + ' days';
         document.getElementById('p-total').textContent = '₱' + penalty.toFixed(2);
-        penaltyBox.classList.remove('hidden');
-        noPenaltyBox.classList.add('hidden');
+        penaltyBox.style.display = 'block';
+        noPenaltyBox.style.display = 'none';
     } else {
-        penaltyBox.classList.add('hidden');
-        noPenaltyBox.classList.remove('hidden');
+        penaltyBox.style.display = 'none';
+        noPenaltyBox.style.display = 'block';
     }
 
-    document.getElementById('txn-detail').classList.remove('hidden');
-    document.getElementById('return-fields').classList.remove('hidden');
+    txnDetail.style.display = 'block';
+    returnFields.style.display = 'block';
 });
 </script>
 @endpush
