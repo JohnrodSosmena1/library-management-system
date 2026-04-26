@@ -4,15 +4,19 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 
-class User extends Model
+class User extends Authenticatable
 {
     protected $fillable = [
         'name',
         'email',
         'contact_no',
         'status',
+        'password',
     ];
+
+    protected $hidden = ['password'];
 
     public function borrowings(): HasMany
     {

@@ -21,6 +21,15 @@ class DatabaseSeeder extends Seeder
             'Political Science', 'Literature', 'Arts', 'Reference',
         ])->mapWithKeys(fn($name) => [$name => Category::create(['name' => $name])]);
 
+        // Default Admin/Librarian Account
+        $admin = Librarian::create([
+            'name'       => 'Admin',
+            'email'      => 'admin@library.local',
+            'password'   => Hash::make('admin123'),
+            'contact_no' => '09000000000',
+            'role'       => 'Head Librarian',
+        ]);
+
         // Librarian
         $librarian = Librarian::create([
             'name'       => 'James Brian',

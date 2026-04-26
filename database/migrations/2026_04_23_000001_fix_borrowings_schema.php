@@ -14,8 +14,8 @@ return new class extends Migration
         });
 
         Schema::table('borrowings', function (Blueprint $table) {
-            // Add missing librarian_id foreign key
-            $table->foreignId('librarian_id')->after('book_id')->constrained('librarians')->onDelete('restrict');
+            // Add missing librarian_id foreign key (nullable for pending requests)
+            $table->foreignId('librarian_id')->nullable()->after('book_id')->constrained('librarians')->onDelete('restrict');
             
             // Add penalty field for late returns
             $table->decimal('penalty', 10, 2)->after('return_date')->default(0);

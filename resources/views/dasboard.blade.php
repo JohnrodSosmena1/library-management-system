@@ -63,6 +63,20 @@
                 </div>
             </div>
         </div>
+
+        {{-- Pending Requests Card --}}
+        <div class="col-12 col-sm-6 col-lg-3">
+            <a href="{{ route('borrow.pending') }}" class="stat-card info" style="text-decoration: none; color: white; cursor: pointer;">
+                <div class="stat-icon">
+                    <i class="bi bi-hourglass-split"></i>
+                </div>
+                <div class="stat-content">
+                    <h6>Pending Requests</h6>
+                    <h3>{{ $pendingRequests }}</h3>
+                    <small><i class="bi bi-info-circle me-1"></i>awaiting approval</small>
+                </div>
+            </a>
+        </div>
     </div>
 
     {{-- Main Content --}}
@@ -186,6 +200,63 @@
             </div>
         </div>
     </div>
+
+    {{-- Pending Requests Section --}}
+    @if($pendingRequests > 0)
+        <div class="row g-4 mt-2">
+            <div class="col-12">
+                <div class="card border-warning">
+                    <div class="card-header bg-warning bg-opacity-10">
+                        <h5 class="mb-0 text-warning">
+                            <i class="bi bi-hourglass-split me-2"></i>Pending Borrow Requests ({{ $pendingRequests }})
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        @if($recentPendingRequests->isNotEmpty())
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>User</th>
+                                            <th>Book Title</th>
+                                            <th>Requested</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($recentPendingRequests as $req)
+                                            <tr>
+                                                <td>
+                                                    <div class="fw-bold">{{ $req->user->name }}</div>
+                                                    <small class="text-muted">{{ $req->user->contact_no }}</small>
+                                                </td>
+                                                <td>
+                                                    <div class="fw-bold">{{ $req->book->title }}</div>
+                                                    <small class="text-muted">{{ $req->book->author ?? 'N/A' }}</small>
+                                                </td>
+                                                <td>
+                                                    <span class="text-muted">{{ $req->created_at->format('M d, Y H:i') }}</span>
+                                                </td>
+                                                <td>
+                                                    <a href="{{ route('borrow.pending') }}" class="btn btn-sm btn-warning">
+                                                        <i class="bi bi-arrow-right"></i> Review All
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @else
+                            <div class="p-3">
+                                <p class="text-muted mb-0">No pending requests to display.</p>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
 
     {{-- Overdue Books Section --}}
     @if($overdueList->isNotEmpty())

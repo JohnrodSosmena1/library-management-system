@@ -79,4 +79,49 @@ class UserController extends Controller
         return redirect()->route('users.index')
             ->with('success', "User \"{$name}\" deleted.");
     }
+
+    /**
+     * Show user profile (for logged-in users)
+     */
+    public function userProfile(): View
+    {
+        $user = \Auth::guard('user')->user();
+        if (!$user) {
+            return redirect('/login');
+        }
+
+        return view('user.profile', compact('user'));
+    }
+
+    /**
+     * Update user profile
+     */
+    public function updateProfile(Request $request): RedirectResponse
+    {
+        $user = \Auth::guard('user')->user();
+        if (!$user) {
+            return redirect('/login');
+        }
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => "required|email|unique:users,email,{$user->id}",
+            'contact_no' => 'required|string|max:20',
+            'password' => 'nullable|string|min:8|confirmed',
+        ]);
+
+        $updateData = [
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'contact_no' => $validated['contact_no'],
+        ];
+
+        if ($validated['password']) {
+            $updateData['password'] = \Illuminate\Support\Facades\Hash::make($validated['password']);
+        }
+
+        $user->update($updateData);
+
+        return back()->with('success', 'Profile updated successfully!');
+    }
 }

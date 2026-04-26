@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Models\Librarian;
 
 return [
 
@@ -42,6 +43,16 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        'librarian' => [
+            'driver' => 'session',
+            'provider' => 'librarians',
+        ],
+
+        'user' => [
+            'driver' => 'session',
+            'provider' => 'users',
+        ],
     ],
 
     /*
@@ -65,6 +76,11 @@ return [
         'users' => [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', User::class),
+        ],
+
+        'librarians' => [
+            'driver' => 'eloquent',
+            'model' => env('AUTH_LIBRARIAN_MODEL', 'App\\Models\\Librarian'),
         ],
 
         // 'users' => [

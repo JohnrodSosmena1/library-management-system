@@ -27,7 +27,8 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('password')->nullable(false)->change();
+            // Don't try to change password to not nullable on rollback
+            // as there may be NULL values from patrons
         });
     }
 };

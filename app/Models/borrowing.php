@@ -8,6 +8,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Borrowing extends Model
 {
+    // Status Constants
+    const STATUS_PENDING = 'Pending';
+    const STATUS_APPROVED = 'Approved';
+    const STATUS_BORROWED = 'Borrowed';
+    const STATUS_OVERDUE = 'Overdue';
+    const STATUS_RETURNED = 'Returned';
+    const STATUS_REJECTED = 'Rejected';
+
     const PENALTY_RATE = 5.00; // PHP per day
     const BORROW_LIMIT = 3;
     const LOAN_DAYS    = 30;
