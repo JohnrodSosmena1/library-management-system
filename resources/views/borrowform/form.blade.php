@@ -40,19 +40,15 @@
                 <!-- Eligibility Box -->
                 <div id="eligibility-box" class="mb-3"></div>
 
-                <!-- Book Selection -->
+                <!-- Book Selection (Hidden field + Display) -->
+                <input type="hidden" name="book_id" id="book-select">
                 <div class="mb-3">
-                    <label for="book-select" class="form-label">
+                    <label class="form-label">
                         Book <span class="text-danger">*</span>
                     </label>
-                    <select name="book_id" id="book-select" class="form-select {{ $errors->has('book_id') ? 'is-invalid' : '' }}">
-                        <option value="">— Select an available book —</option>
-                        @foreach($books as $book)
-                            <option value="{{ $book->id }}" {{ old('book_id') == $book->id ? 'selected' : '' }}>
-                                {{ $book->title }} — {{ $book->author }} ({{ $book->formatted_id }})
-                            </option>
-                        @endforeach
-                    </select>
+                    <div id="book-display" class="form-control" style="background-color: #f8f9fa; height: auto; padding: 12px; min-height: 38px; display: flex; align-items: center;">
+                        <span class="text-muted">Select a user to see their requested book</span>
+                    </div>
                     @error('book_id')
                         <div class="invalid-feedback d-block">{{ $message }}</div>
                     @enderror
@@ -120,12 +116,21 @@
 <script>
 const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-// Eligibility check on user select
+// Eligibility check and get requested books on user select
 document.getElementById('user-select').addEventListener('change', function () {
     const userId = this.value;
     const box    = document.getElementById('eligibility-box');
-    if (!userId) { box.innerHTML = ''; return; }
+    const bookDisplay = document.getElementById('book-display');
+    const bookSelect = document.getElementById('book-select');
+    
+    if (!userId) { 
+        box.innerHTML = ''; 
+        bookDisplay.innerHTML = '<span class="text-muted">Select a user to see their requested book</span>';
+        bookSelect.value = '';
+        return; 
+    }
 
+    // Check eligibility
     fetch('{{ route("borrow.eligibility") }}', {
         method: 'POST',
         headers: {
@@ -136,10 +141,43 @@ document.getElementById('user-select').addEventListener('change', function () {
     })
     .then(r => r.json())
     .then(data => {
-        const cls  = data.eligible ? 'alert-green' : 'alert-red';
+        const cls  = data.eligible ? 'alert-success' : 'alert-danger';
         const icon = data.eligible ? '✔' : '✖';
-        box.innerHTML = `<div class="alert ${cls}">${icon} ${data.message}</div>`;
+        box.innerHTML = `<div class="alert ${cls}" role="alert">${icon} ${data.message}</div>`;
         document.getElementById('submit-btn').disabled = !data.eligible;
+    });
+
+    // Fetch user's requested books
+    fetch('{{ route("borrow.requested-books") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken,
+        },
+        body: JSON.stringify({ user_id: userId }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.has_requests && data.books.length > 0) {
+            // Auto-populate with the first requested book
+            const book = data.books[0];
+            bookSelect.value = book.id;
+            bookDisplay.innerHTML = `
+                <div>
+                    <strong>${book.title}</strong> — ${book.author} (${book.formatted_id})
+                </div>
+            `;
+            document.getElementById('txn-summary').style.display = 'block';
+        } else {
+            bookSelect.value = '';
+            bookDisplay.innerHTML = '<span class="text-muted">This user has no pending book requests</span>';
+            document.getElementById('txn-summary').style.display = 'none';
+        }
+    })
+    .catch(err => {
+        console.error('Error fetching requested books:', err);
+        bookSelect.value = '';
+        bookDisplay.innerHTML = '<span class="text-danger">Error loading requested books</span>';
     });
 });
 
@@ -148,12 +186,6 @@ document.getElementById('date-borrowed').addEventListener('change', function () 
     const d   = new Date(this.value);
     d.setDate(d.getDate() + {{ \App\Models\Borrowing::LOAN_DAYS }});
     document.getElementById('due-date-display').value = d.toISOString().split('T')[0];
-});
-
-// Show summary when book selected
-document.getElementById('book-select').addEventListener('change', function () {
-    const summary = document.getElementById('txn-summary');
-    summary.classList.toggle('hidden', !this.value);
 });
 </script>
 @endpush

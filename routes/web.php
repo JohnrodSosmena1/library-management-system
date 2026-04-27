@@ -72,6 +72,7 @@ Route::middleware('auth:librarian')->group(function () {
     Route::get('/borrow', [BorrowingController::class, 'borrowForm'])->name('borrow.form');
     Route::post('/borrow', [BorrowingController::class, 'store'])->name('borrow.store');
     Route::post('/borrow/check-eligibility', [BorrowingController::class, 'checkEligibility'])->name('borrow.eligibility');
+    Route::post('/borrow/get-requested-books', [BorrowingController::class, 'getUserRequestedBooks'])->name('borrow.requested-books');
 
     // Return a book
     Route::get('/return', [BorrowingController::class, 'returnForm'])->name('return.form');

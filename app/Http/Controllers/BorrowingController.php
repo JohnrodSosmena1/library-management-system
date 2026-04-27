@@ -53,6 +53,30 @@ class BorrowingController extends Controller
         return response()->json($result);
     }
 
+    public function getUserRequestedBooks(Request $request): JsonResponse
+    {
+        $request->validate(['user_id' => 'required|exists:users,id']);
+        
+        $pendingRequests = Borrowing::where('user_id', $request->user_id)
+            ->where('status', Borrowing::STATUS_PENDING)
+            ->with(['book'])
+            ->get();
+
+        $books = $pendingRequests->map(function ($borrowing) {
+            return [
+                'id' => $borrowing->book->id,
+                'title' => $borrowing->book->title,
+                'author' => $borrowing->book->author,
+                'formatted_id' => $borrowing->book->formatted_id,
+            ];
+        })->unique('id')->values();
+
+        return response()->json([
+            'books' => $books,
+            'has_requests' => $books->count() > 0,
+        ]);
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
@@ -296,10 +320,13 @@ class BorrowingController extends Controller
     /**
      * Librarian approves a borrow request
      */
-    public function approveBorrowRequest(Request $request, Borrowing $borrowing): RedirectResponse
+    public function approveBorrowRequest(Request $request, Borrowing $borrowing)
     {
         if ($borrowing->status !== Borrowing::STATUS_PENDING) {
-            return back()->with('error', 'Only pending requests can be approved.');
+            $message = 'Only pending requests can be approved.';
+            return $request->expectsJson() 
+                ? response()->json(['error' => $message], 422) 
+                : back()->with('error', $message);
         }
 
         $validated = $request->validate([
@@ -311,7 +338,10 @@ class BorrowingController extends Controller
 
         // Check book availability
         if ($book->quantity <= 0) {
-            return back()->with('error', "Book \"{$book->title}\" is out of stock.");
+            $message = "Book \"{$book->title}\" is out of stock.";
+            return $request->expectsJson() 
+                ? response()->json(['error' => $message], 422) 
+                : back()->with('error', $message);
         }
 
         $dateBorrowed = Carbon::parse($validated['date_borrowed']);
@@ -330,16 +360,23 @@ class BorrowingController extends Controller
             'quantity' => max(0, $book->quantity - 1),
         ]);
 
-        return back()->with('success', "Request approved — \"{$book->title}\" borrowed by {$borrowing->user->name}.");
+        $message = "Request approved — \"{$book->title}\" borrowed by {$borrowing->user->name}.";
+        
+        return $request->expectsJson() 
+            ? response()->json(['success' => $message]) 
+            : back()->with('success', $message);
     }
 
     /**
      * Librarian rejects a borrow request
      */
-    public function rejectBorrowRequest(Borrowing $borrowing): RedirectResponse
+    public function rejectBorrowRequest(Request $request, Borrowing $borrowing)
     {
         if ($borrowing->status !== Borrowing::STATUS_PENDING) {
-            return back()->with('error', 'Only pending requests can be rejected.');
+            $message = 'Only pending requests can be rejected.';
+            return $request->expectsJson() 
+                ? response()->json(['error' => $message], 422) 
+                : back()->with('error', $message);
         }
 
         $bookTitle = $borrowing->book->title;
@@ -347,6 +384,10 @@ class BorrowingController extends Controller
 
         $borrowing->update(['status' => Borrowing::STATUS_REJECTED]);
 
-        return back()->with('success', "Request rejected — {$userName}'s request for \"{$bookTitle}\" has been rejected.");
+        $message = "Request rejected — {$userName}'s request for \"{$bookTitle}\" has been rejected.";
+        
+        return $request->expectsJson() 
+            ? response()->json(['success' => $message]) 
+            : back()->with('success', $message);
     }
 }

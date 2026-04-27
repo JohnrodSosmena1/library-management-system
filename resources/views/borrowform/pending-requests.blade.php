@@ -106,25 +106,19 @@
                                             <i class="bi bi-check2-circle"></i> Approve
                                         </button>
 
-                                        <!-- Reject Button -->
-                                        <form action="{{ route('borrow.reject', $request->id) }}" method="POST" style="display: inline;">
-                                            @csrf
-                                            @method('PUT')
-                                            <button type="submit" class="btn btn-sm btn-danger" 
-                                                    onclick="return confirm('Reject this request?')">
-                                                <i class="bi bi-x-circle"></i> Reject
-                                            </button>
-                                        </form>
+                                        <!-- Reject Button (AJAX) -->
+                                        <button type="button" class="btn btn-sm btn-danger reject-btn" 
+                                                data-request-id="{{ $request->id }}"
+                                                onclick="rejectRequest({{ $request->id }})">
+                                            <i class="bi bi-x-circle"></i> Reject
+                                        </button>
                                     @else
-                                        <!-- Out of Stock -->
-                                        <form action="{{ route('borrow.reject', $request->id) }}" method="POST" style="display: inline;">
-                                            @csrf
-                                            @method('PUT')
-                                            <button type="submit" class="btn btn-sm btn-secondary" 
-                                                    onclick="return confirm('Out of stock — reject this request?')">
-                                                <i class="bi bi-x-circle"></i> Out of Stock
-                                            </button>
-                                        </form>
+                                        <!-- Out of Stock (AJAX) -->
+                                        <button type="button" class="btn btn-sm btn-secondary reject-btn" 
+                                                data-request-id="{{ $request->id }}"
+                                                onclick="rejectRequest({{ $request->id }}, true)">
+                                            <i class="bi bi-x-circle"></i> Out of Stock
+                                        </button>
                                     @endif
                                 </td>
                             </tr>
@@ -203,3 +197,155 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+// Reject request via AJAX
+function rejectRequest(requestId, isOutOfStock = false) {
+    const confirmMsg = isOutOfStock 
+        ? 'Out of stock — reject this request?' 
+        : 'Reject this request?';
+    
+    if (!confirm(confirmMsg)) return;
+
+    const btn = document.querySelector(`[data-request-id="${requestId}"]`);
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="spinner-border spinner-border-sm me-2"></i>Processing...';
+
+    fetch(`/borrow/${requestId}/reject`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken,
+            'Accept': 'application/json',
+        },
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(data => {
+                throw new Error(data.error || 'Request failed');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Fade out and remove the row
+        const row = btn.closest('tr');
+        row.style.transition = 'opacity 0.3s ease';
+        row.style.opacity = '0';
+        setTimeout(() => {
+            row.remove();
+            // Check if table is empty now
+            const tbody = document.querySelector('table tbody');
+            if (!tbody || tbody.children.length === 0) {
+                location.reload();
+            }
+        }, 300);
+
+        // Show success message
+        const successAlert = document.createElement('div');
+        successAlert.className = 'alert alert-success alert-dismissible fade show';
+        successAlert.setAttribute('role', 'alert');
+        successAlert.innerHTML = `
+            <i class="bi bi-check-circle"></i> ${data.success}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        const container = document.querySelector('.container-fluid');
+        const pageHeader = container.querySelector('.row.mb-4');
+        pageHeader.insertAdjacentElement('afterend', successAlert);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+        alert('Error rejecting request: ' + error.message);
+    });
+}
+
+// Handle approve form submission via AJAX
+document.addEventListener('submit', function(e) {
+    const form = e.target;
+    
+    // Check if this is an approve form inside a modal
+    if (form.action && form.action.includes('/approve') && form.closest('.modal')) {
+        e.preventDefault();
+        
+        const modal = form.closest('.modal');
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalHtml = submitBtn.innerHTML;
+        const modalInstance = bootstrap.Modal.getInstance(modal);
+        
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="spinner-border spinner-border-sm me-2"></i>Processing...';
+
+        const formData = new FormData(form);
+        
+        fetch(form.action, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json',
+            },
+            body: formData,
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw new Error(data.error || 'Request failed');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Close the modal
+            modalInstance.hide();
+            
+            // Find and remove the row from table
+            const userName = form.querySelector('p:nth-of-type(1)').textContent;
+            const bookName = form.querySelector('p:nth-of-type(2)').textContent;
+            
+            let targetRow = null;
+            document.querySelectorAll('table tbody tr').forEach(row => {
+                if (row.innerHTML.includes(userName.replace('User: ', '')) && 
+                    row.innerHTML.includes(bookName.replace('Book: ', ''))) {
+                    targetRow = row;
+                }
+            });
+            
+            if (targetRow) {
+                targetRow.style.transition = 'opacity 0.3s ease';
+                targetRow.style.opacity = '0';
+                setTimeout(() => {
+                    targetRow.remove();
+                    const tbody = document.querySelector('table tbody');
+                    if (!tbody || tbody.children.length === 0) {
+                        location.reload();
+                    }
+                }, 300);
+            }
+            
+            // Show success message
+            const successAlert = document.createElement('div');
+            successAlert.className = 'alert alert-success alert-dismissible fade show';
+            successAlert.setAttribute('role', 'alert');
+            successAlert.innerHTML = `
+                <i class="bi bi-check-circle"></i> ${data.success}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            const container = document.querySelector('.container-fluid');
+            const pageHeader = container.querySelector('.row.mb-4');
+            pageHeader.insertAdjacentElement('afterend', successAlert);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalHtml;
+            alert('Error approving request: ' + error.message);
+        });
+    }
+});
+</script>
+@endpush
