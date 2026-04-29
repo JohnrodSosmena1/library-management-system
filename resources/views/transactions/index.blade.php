@@ -80,8 +80,14 @@
                                 <td><strong class="font-monospace">{{ $txn->formatted_id }}</strong></td>
                                 <td>{{ $txn->user->name }}</td>
                                 <td class="fw-bold">{{ $txn->book->title }}</td>
-                                <td class="text-muted font-monospace">{{ $txn->date_borrowed->format('M d, Y') }}</td>
-                                <td class="text-muted font-monospace">{{ $txn->due_date->format('M d, Y') }}</td>
+                                <td class="text-muted font-monospace">
+    {{ $txn->date_borrowed?->format('M d, Y') ?? '—' }}
+</td>
+
+<!-- Line 84 -->
+<td class="text-muted font-monospace">
+    {{ $txn->due_date?->format('M d, Y') ?? '—' }}
+</td>
                                 <td class="text-muted font-monospace">{{ $txn->return_date ? $txn->return_date->format('M d, Y') : '—' }}</td>
                                 <td>
                                     @if($txn->status === 'Returned')
