@@ -52,10 +52,12 @@ Route::middleware('auth:librarian')->group(function () {
     // Librarian Dashboard
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
-    // Pending Borrow Requests (Librarian)
-    Route::get('/pending-requests', [BorrowingController::class, 'pendingRequests'])->name('borrow.pending');
-    Route::put('/borrow/{borrowing}/approve', [BorrowingController::class, 'approveBorrowRequest'])->name('borrow.approve');
-    Route::put('/borrow/{borrowing}/reject', [BorrowingController::class, 'rejectBorrowRequest'])->name('borrow.reject');
+// Borrowing Management (Combined View - replaces Pending Requests & Borrow Book)
+    Route::get('/borrowing', [BorrowingController::class, 'borrowingIndex'])->name('borrowing.index');
+    Route::put('/borrowing/{borrowing}/approve', [BorrowingController::class, 'approveBorrowRequest'])->name('borrowing.approve');
+    Route::put('/borrowing/{borrowing}/reject', [BorrowingController::class, 'rejectFromManagement'])->name('borrowing.reject');
+    Route::put('/borrowing/{borrowing}', [BorrowingController::class, 'updateBorrowing'])->name('borrowing.update');
+    Route::delete('/borrowing/{borrowing}', [BorrowingController::class, 'destroyBorrowing'])->name('borrowing.destroy');
 
     // Books (CRUD)
     Route::resource('books', BookController::class)->except(['show']);
@@ -67,12 +69,6 @@ Route::middleware('auth:librarian')->group(function () {
 
     // Users (CRUD)
     Route::resource('users', UserController::class)->except(['show']);
-
-    // Borrowing — Borrow a book
-    Route::get('/borrow', [BorrowingController::class, 'borrowForm'])->name('borrow.form');
-    Route::post('/borrow', [BorrowingController::class, 'store'])->name('borrow.store');
-    Route::post('/borrow/check-eligibility', [BorrowingController::class, 'checkEligibility'])->name('borrow.eligibility');
-    Route::post('/borrow/get-requested-books', [BorrowingController::class, 'getUserRequestedBooks'])->name('borrow.requested-books');
 
     // Return a book
     Route::get('/return', [BorrowingController::class, 'returnForm'])->name('return.form');

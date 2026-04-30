@@ -66,7 +66,7 @@
 
         {{-- Pending Requests Card --}}
         <div class="col-12 col-sm-6 col-lg-3">
-            <a href="{{ route('borrow.pending') }}" class="stat-card info" style="text-decoration: none; color: white; cursor: pointer;">
+<a href="{{ route('borrowing.index', ['status' => 'Pending']) }}" class="stat-card info" style="text-decoration: none; color: white; cursor: pointer;">
                 <div class="stat-icon">
                     <i class="bi bi-hourglass-split"></i>
                 </div>
@@ -176,9 +176,9 @@
                     </h5>
                 </div>
                 <div class="list-group list-group-flush">
-                    <a href="{{ route('borrow.form') }}" class="list-group-item list-group-item-action d-flex align-items-center">
+<a href="{{ route('borrowing.index') }}" class="list-group-item list-group-item-action d-flex align-items-center">
                         <i class="bi bi-arrow-right-circle text-primary me-2"></i>
-                        <span>Borrow Book</span>
+                        <span>Borrowing Management</span>
                         <i class="bi bi-chevron-right ms-auto text-muted"></i>
                     </a>
                     <a href="{{ route('return.form') }}" class="list-group-item list-group-item-action d-flex align-items-center">
@@ -238,7 +238,7 @@
                                                     <span class="text-muted">{{ $req->created_at->format('M d, Y H:i') }}</span>
                                                 </td>
                                                 <td>
-                                                    <a href="{{ route('borrow.pending') }}" class="btn btn-sm btn-warning">
+<a href="{{ route('borrowing.index', ['status' => 'Pending']) }}" class="btn btn-sm btn-warning">
                                                         <i class="bi bi-arrow-right"></i> Review All
                                                     </a>
                                                 </td>

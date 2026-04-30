@@ -53,18 +53,15 @@
                 </a>
                 <a href="{{ route('categories.index') }}" class="nav-item {{ request()->routeIs('categories.*') ? 'active' : '' }}">
                     <span class="nav-icon">⊞</span> Categories
-                </a>
+</a>
 
                 <div class="nav-section">Circulation</div>
-                <a href="{{ route('borrow.pending') }}" class="nav-item {{ request()->routeIs('borrow.pending') ? 'active' : '' }}">
-                    <span class="nav-icon">⏳</span> Pending Requests
+                <a href="{{ route('borrowing.index') }}" class="nav-item {{ request()->routeIs('borrowing.*') ? 'active' : '' }}">
+                    <span class="nav-icon">⇄</span> Borrowing Management
                     @php $pendingCount = \App\Models\Borrowing::where('status', 'Pending')->count(); @endphp
                     @if($pendingCount > 0)
                         <span class="nav-badge">{{ $pendingCount }}</span>
                     @endif
-                </a>
-                <a href="{{ route('borrow.form') }}" class="nav-item {{ request()->routeIs('borrow.form') ? 'active' : '' }}">
-                    <span class="nav-icon">↗</span> Borrow Book
                 </a>
                 <a href="{{ route('return.form') }}" class="nav-item {{ request()->routeIs('return.form') ? 'active' : '' }}">
                     <span class="nav-icon">↙</span> Return Book

@@ -14,7 +14,7 @@ use Illuminate\View\View;
 
 class BorrowingController extends Controller
 {
-    // ── Transactions List ────────────────────────────────────
+// ── Transactions List ────────────────────────────────────
 
     public function index(Request $request): View
     {
@@ -33,6 +33,61 @@ class BorrowingController extends Controller
         $transactions = $query->latest()->paginate(10)->withQueryString();
 
         return view('transactions.index', compact('transactions'));
+    }
+
+// ── Borrowing Management (Pending Requests Only) ───────────────────
+
+    public function borrowingIndex(Request $request): View
+    {
+        // Only show PENDING requests in Borrowing Management
+        $query = Borrowing::with(['user', 'book', 'librarian'])
+            ->where('status', Borrowing::STATUS_PENDING);
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('user', fn($q) => $q->where('name', 'like', "%{$search}%"))
+                  ->orWhereHas('book', fn($q) => $q->where('title', 'like', "%{$search}%"));
+        }
+
+        $borrowings = $query->latest()->paginate(15)->withQueryString();
+
+        return view('borrowing.index', compact('borrowings'));
+    }
+
+    /**
+     * Update borrowing details (edit)
+     */
+    public function updateBorrowing(Request $request, Borrowing $borrowing): RedirectResponse
+    {
+        if (!in_array($borrowing->status, [Borrowing::STATUS_BORROWED, Borrowing::STATUS_OVERDUE])) {
+            return back()->with('error', 'Only borrowed or overdue items can be edited.');
+        }
+
+        $validated = $request->validate([
+            'due_date' => 'required|date',
+            'librarian_id' => 'required|exists:librarians,id',
+        ]);
+
+        $borrowing->update([
+            'due_date' => $validated['due_date'],
+            'librarian_id' => $validated['librarian_id'],
+        ]);
+
+        return back()->with('success', 'Borrowing updated successfully.');
+    }
+
+    /**
+     * Reject borrowing from management page
+     */
+    public function rejectFromManagement(Request $request, Borrowing $borrowing): JsonResponse
+    {
+        if ($borrowing->status !== Borrowing::STATUS_PENDING) {
+            return response()->json(['error' => 'Only pending requests can be rejected.'], 422);
+        }
+
+        $borrowing->update(['status' => Borrowing::STATUS_REJECTED]);
+
+        return response()->json(['success' => "Borrowing request rejected."]);
     }
 
     // ── Borrow ───────────────────────────────────────────────
@@ -354,11 +409,9 @@ class BorrowingController extends Controller
             'quantity' => max(0, $book->quantity - 1),
         ]);
 
-        $message = "Request approved — \"{$book->title}\" borrowed by {$borrowing->user->name}.";
-        
-        return $request->expectsJson() 
-            ? response()->json(['success' => $message]) 
-            : back()->with('success', $message);
+// Redirect to Transactions after approval
+        return redirect()->route('transactions.index')
+            ->with('success', "Request approved — \"{$book->title}\" borrowed by {$borrowing->user->name}.");
     }
 
     /**
@@ -378,10 +431,8 @@ class BorrowingController extends Controller
 
         $borrowing->update(['status' => Borrowing::STATUS_REJECTED]);
 
-        $message = "Request rejected — {$userName}'s request for \"{$bookTitle}\" has been rejected.";
-        
-        return $request->expectsJson() 
-            ? response()->json(['success' => $message]) 
-            : back()->with('success', $message);
+        // Redirect to Transactions after rejection
+        return redirect()->route('transactions.index')
+            ->with('success', "Request rejected — {$userName}'s request for \"{$bookTitle}\" has been rejected.");
     }
 }

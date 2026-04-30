@@ -1,8 +1,11 @@
-# TODO: Implement PENDING status for unconfirmed transactions
+# TODO - Borrowing Management Updates
 
-## Steps:
+## Task: Only show pending requests in Borrowing Management, after approve/reject go to Transactions
 
-- [x] Step 1: Update BorrowingController.php store() method to create PENDING status and remove immediate book updates
-- [x] Step 2: Add 'Pending' badge to transactions/index.blade.php for consistency
-- [ ] Step 3: Test creation and approval flows
-- [ ] Step 4: Mark complete
+### Steps:
+
+- [x]   1. Analyze existing code structure
+- [x]   2. Update BorrowingController.php - change `borrowingIndex()` to only show Pending status
+- [x]   3. Update BorrowingController.php - redirect to transactions.index after approve/reject
+- [x]   4. Update borrowing/index.blade.php - remove filter tabs
+- [x]   5. Update JavaScript for redirect after reject via AJAX
