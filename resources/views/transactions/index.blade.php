@@ -28,6 +28,8 @@
                         <option value="Borrowed" {{ request('status') === 'Borrowed' ? 'selected' : '' }}>Borrowed</option>
                         <option value="Overdue" {{ request('status') === 'Overdue' ? 'selected' : '' }}>Overdue</option>
                         <option value="Returned" {{ request('status') === 'Returned' ? 'selected' : '' }}>Returned</option>
+                        <option value="Pending" {{ request('status') === 'Pending' ? 'selected' : '' }}>Pending</option>
+                        <option value="Rejected" {{ request('status') === 'Rejected' ? 'selected' : '' }}>Rejected</option>
                     </select>
                 </div>
                 <div class="col-md-3">
@@ -76,20 +78,30 @@
                     </thead>
                     <tbody>
                         @foreach($transactions as $txn)
-                            <tr class="{{ $txn->status === 'Overdue' ? 'table-danger' : '' }}">
+                            <tr class="{{ $txn->status === 'Overdue' || $txn->status === 'Rejected' ? 'table-danger' : '' }}">
                                 <td><strong class="font-monospace">{{ $txn->formatted_id }}</strong></td>
                                 <td>{{ $txn->user->name }}</td>
                                 <td class="fw-bold">{{ $txn->book->title }}</td>
-                                <td class="text-muted font-monospace">{{ $txn->date_borrowed->format('M d, Y') }}</td>
-                                <td class="text-muted font-monospace">{{ $txn->due_date->format('M d, Y') }}</td>
+                                <td class="text-muted font-monospace">
+                                    {{ $txn->date_borrowed?->format('M d, Y') ?? '—' }}
+                                </td>
+                                <td class="text-muted font-monospace">
+                                    {{ $txn->due_date?->format('M d, Y') ?? '—' }}
+                                </td>
                                 <td class="text-muted font-monospace">{{ $txn->return_date ? $txn->return_date->format('M d, Y') : '—' }}</td>
                                 <td>
                                     @if($txn->status === 'Returned')
                                         <span class="badge bg-success">Returned</span>
                                     @elseif($txn->status === 'Overdue')
                                         <span class="badge bg-danger">Overdue</span>
-                                    @else
+                                    @elseif($txn->status === 'Rejected')
+                                        <span class="badge bg-danger">Rejected</span>
+                                    @elseif($txn->status === 'Pending')
+                                        <span class="badge bg-info">Pending</span>
+                                    @elseif($txn->status === 'Borrowed')
                                         <span class="badge bg-warning text-dark">Borrowed</span>
+                                    @else
+                                        <span class="badge bg-secondary">{{$txn->status}}</span>
                                     @endif
                                 </td>
                                 <td class="{{ $txn->days_late > 0 ? 'text-danger fw-bold' : 'text-muted' }}">
@@ -109,3 +121,4 @@
     @endif
 </div>
 @endsection
+

@@ -92,13 +92,7 @@ class BorrowingController extends Controller
             return back()->with('error', $eligibility['message'])->withInput();
         }
 
-        $book = Book::findOrFail($validated['book_id']);
-        if (!$book->isAvailable()) {
-            return back()->with('error', "Book \"{$book->title}\" is not available.")->withInput();
-        }
-
-        $dateBorrowed = Carbon::parse($validated['date_borrowed']);
-        $dueDate      = $dateBorrowed->copy()->addDays(Borrowing::LOAN_DAYS);
+        // Book availability checked during approval\n        $dateBorrowed = Carbon::parse($validated['date_borrowed']);\n        $dueDate      = $dateBorrowed->copy()->addDays(Borrowing::LOAN_DAYS);
 
         $borrowing = Borrowing::create([
             'user_id'       => $validated['user_id'],
@@ -106,7 +100,7 @@ class BorrowingController extends Controller
             'librarian_id'  => $validated['librarian_id'],
             'date_borrowed' => $dateBorrowed,
             'due_date'      => $dueDate,
-            'status'        => 'Borrowed',
+'status'        => Borrowing::STATUS_PENDING,
         ]);
 
         // Mark book as borrowed and decrement quantity

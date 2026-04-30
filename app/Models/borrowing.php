@@ -64,9 +64,9 @@ class Borrowing extends Model
             return $diff < 0 ? (int) abs($diff) : 0;
         }
 
-        if ($this->due_date->isPast()) {
-            return (int) $this->due_date->diffInDays(now());
-        }
+        if ($this->due_date && $this->due_date->isPast()) {
+    return (int) $this->due_date->diffInDays(now());
+}
 
         return 0;
     }
