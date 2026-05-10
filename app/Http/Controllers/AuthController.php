@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use App\Models\Librarian;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -25,7 +25,8 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
             'email' => 'required|email|unique:users|max:255',
             'password' => 'required|string|min:8|confirmed',
             'contact_no' => 'required|string|max:20',
@@ -33,7 +34,12 @@ class AuthController extends Controller
 
         try {
             $user = User::create([
-                'name' => $validated['name'],
+                // Your current DB users table still expects `name`.
+                // Keep first/last for app logic.
+                // Also set `name` because your current DB users table still has a required `name` column.
+                'first_name' => $validated['first_name'],
+                'last_name' => $validated['last_name'],
+'name' => trim($validated['first_name'] . ' ' . $validated['last_name']),
                 'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
                 'contact_no' => $validated['contact_no'],
@@ -45,7 +51,14 @@ class AuthController extends Controller
 
             return redirect('/dashboard')->with('success', 'Registration successful! Welcome to the library.');
         } catch (\Exception $e) {
-            return back()->withErrors(['error' => 'Registration failed. Please try again.']);
+            \Log::error('Registration failed', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return back()->withErrors([
+                'error' => 'Registration failed: ' . $e->getMessage(),
+            ]);
         }
     }
 
@@ -104,3 +117,4 @@ class AuthController extends Controller
         return redirect('/')->with('success', 'Logged out successfully!');
     }
 }
+

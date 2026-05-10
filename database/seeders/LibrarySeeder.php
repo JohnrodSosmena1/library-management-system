@@ -44,9 +44,10 @@ class LibrarySeeder extends Seeder
         );
 
         // Create sample librarians
+        // IMPORTANT: Keep admin@library.local as the ONLY Head Librarian (seeded in DatabaseSeeder).
         Librarian::firstOrCreate(
             ['email' => 'head@library.edu'],
-            ['name' => 'Ms. Rosa Garcia', 'password' => bcrypt('password'), 'contact_no' => '09171111111', 'role' => 'Head Librarian']
+            ['name' => 'Ms. Rosa Garcia', 'password' => bcrypt('password'), 'contact_no' => '09171111111', 'role' => 'Librarian']
         );
 
         Librarian::firstOrCreate(
@@ -73,6 +74,7 @@ class LibrarySeeder extends Seeder
 
         foreach ($sampleBooks as $book) {
             $category = Category::where('name', $book['category'])->first();
+
             Book::firstOrCreate(
                 ['isbn' => $book['isbn']],
                 [
@@ -88,3 +90,4 @@ class LibrarySeeder extends Seeder
         $this->command->info('✅ Library seeding completed successfully!');
     }
 }
+

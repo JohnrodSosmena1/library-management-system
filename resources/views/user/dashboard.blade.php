@@ -6,7 +6,7 @@
     <div class="row mb-4">
         <div class="col-12">
             <h1 class="h3 mb-2">My Dashboard</h1>
-            <p class="text-muted">Welcome, {{ Auth::guard('user')->user()->name }}!</p>
+            <p class="text-muted">Welcome, {{ Auth::guard('user')->user()->fullName }}!</p>
         </div>
     </div>
 
@@ -94,7 +94,7 @@
                                         <br>
                                         <small class="text-muted">by {{ $borrow->book->author }}</small>
                                     </td>
-                                    <td>{{ $borrow->created_at->format('M d, Y') }}</td>
+<td>{{ $borrow->created_at?->format('M d, Y') ?? 'N/A' }}</td>
                                     <td>
                                         <span class="badge bg-warning">Pending</span>
                                     </td>
@@ -154,8 +154,9 @@
                                         <br>
                                         <small class="text-muted">by {{ $borrow->book->author }}</small>
                                     </td>
-                                    <td>{{ $borrow->date_borrowed->format('M d, Y') }}</td>
-                                    <td>{{ $borrow->due_date->format('M d, Y') }}</td>
+<td>{{ $borrow->date_borrowed?->format('M d, Y') ?? 'N/A' }}</td>
+                                    <td>{{ $borrow->due_date?->format('M d, Y') ?? 'N/A' }}</td>
+
                                     <td>
                                         @php
                                             $daysLeft = now()->diffInDays($borrow->due_date, false);

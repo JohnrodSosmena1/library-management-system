@@ -2,14 +2,16 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 
 class User extends Authenticatable
 {
     protected $fillable = [
+        // DB schema currently still has required `name`
         'name',
+        'first_name',
+        'last_name',
         'email',
         'contact_no',
         'status',
@@ -40,4 +42,18 @@ class User extends Authenticatable
     {
         return $this->activeBorrowings()->count();
     }
+
+    public function fullName(): string
+    {
+        $first = $this->first_name ?? '';
+        $last = $this->last_name ?? '';
+
+        return trim($first . ' ' . $last);
+    }
+
+    public function getFullNameAttribute(): string
+    {
+        return $this->fullName();
+    }
 }
+

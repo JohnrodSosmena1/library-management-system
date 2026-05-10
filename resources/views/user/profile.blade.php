@@ -36,7 +36,7 @@
                             <div class="mb-3">
                                 <i class="bi bi-person-circle display-1 text-primary"></i>
                             </div>
-                            <h5>{{ $user->name }}</h5>
+<h5>{{ $user->fullName() }}</h5>
                             <p class="text-muted">Member ID: #{{ str_pad($user->id, 4, '0', STR_PAD_LEFT) }}</p>
                             <span class="badge bg-{{ $user->status === 'Active' ? 'success' : 'danger' }}">
                                 {{ $user->status }}
@@ -49,10 +49,15 @@
                                 @method('PUT')
 
                                 <div class="mb-3">
-                                    <label for="name" class="form-label">Full Name</label>
-                                    <input type="text" class="form-control @error('name') is-invalid @enderror" 
-                                           id="name" name="name" value="{{ old('name', $user->name) }}" required>
-                                    @error('name')
+                                    <label class="form-label">First / Last Name</label>
+                                    <input type="text" class="form-control @error('first_name') is-invalid @enderror"
+                                           id="first_name" name="first_name" value="{{ old('first_name', $user->first_name) }}" required>
+                                    <input type="text" class="form-control mt-2 @error('last_name') is-invalid @enderror"
+                                           id="last_name" name="last_name" value="{{ old('last_name', $user->last_name) }}" required>
+                                    @error('first_name')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                    @error('last_name')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>

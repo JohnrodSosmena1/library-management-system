@@ -114,8 +114,9 @@
                                     {{ $borrowing->return_date ? $borrowing->return_date->format('M d, Y') : 'N/A' }}
                                 </td>
                                 <td>
-                                    <div class="btn-group" role="group">
+            <div class="btn-group" role="group">
                                         @if($borrowing->status === 'Pending')
+
                                             <!-- Approve Button -->
                                             <button class="btn btn-sm btn-success" data-bs-toggle="modal" 
                                                     data-bs-target="#approveModal{{ $borrowing->id }}">
@@ -124,7 +125,8 @@
 
                                             <!-- Reject Button -->
                                             <button type="button" class="btn btn-sm btn-danger" 
-                                                    onclick="rejectBorrowing({{ $borrowing->id }})">
+                                                    onclick="rejectBorrowing({{ $borrowing->id }}, this)">
+
                                                 <i class="bi bi-x-circle"></i> Reject
                                             </button>
                                         @endif
@@ -139,7 +141,7 @@
 
                                         <!-- Delete Button -->
                                         <button type="button" class="btn btn-sm btn-dark" 
-                                                onclick="deleteBorrowing({{ $borrowing->id }})">
+                                                onclick="deleteBorrowing({{ $borrowing->id }}, this)">
                                             <i class="bi bi-trash"></i> Delete
                                         </button>
 
@@ -281,10 +283,13 @@
 const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
 // Reject borrowing via AJAX
-function rejectBorrowing(borrowingId) {
+function rejectBorrowing(borrowingId, btnElement) {
+
     if (!confirm('Reject this borrowing request?')) return;
 
-    const btn = event.target;
+    const btn = btnElement;
+    if (!btn) return;
+
     const originalHtml = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<i class="spinner-border spinner-border-sm"></i>...';
@@ -334,10 +339,13 @@ function rejectBorrowing(borrowingId) {
 }
 
 // Delete borrowing via AJAX
-function deleteBorrowing(borrowingId) {
+function deleteBorrowing(borrowingId, btnElement) {
+
     if (!confirm('Are you sure you want to delete this borrowing record? This action cannot be undone.')) return;
 
-    const btn = event.target;
+    const btn = btnElement;
+    if (!btn) return;
+
     const originalHtml = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<i class="spinner-border spinner-border-sm"></i>...';

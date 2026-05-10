@@ -45,6 +45,10 @@ Route::middleware('auth:user')->group(function () {
     // User Profile
     Route::get('/profile', [UserController::class, 'userProfile'])->name('user.profile');
     Route::put('/profile', [UserController::class, 'updateProfile'])->name('user.profile.update');
+
+    // User Return Book
+    Route::get('/user/return', [UserDashboardController::class, 'userReturnForm'])->name('user.return.form');
+    Route::post('/user/return', [UserDashboardController::class, 'processUserReturn'])->name('user.return.process');
 });
 
 // Librarian Routes (protected by auth:librarian middleware)

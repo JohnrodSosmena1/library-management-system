@@ -6,20 +6,21 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
     public function index(Request $request): View
     {
         $query = User::withCount([
-            'borrowings as active_count' => fn($q) => $q->active(),
+            'borrowings as active_count' => fn ($q) => $q->active(),
         ]);
 
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                $q->whereRaw("concat_ws(' ', first_name, last_name) like ?", ["{$search}%"])
+                    ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
@@ -36,15 +37,16 @@ class UserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'name'       => 'required|string|max:255',
-            'email'      => 'required|email|unique:users,email',
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
             'contact_no' => 'nullable|string|max:20',
         ]);
 
         User::create($validated);
 
         return redirect()->route('users.index')
-            ->with('success', "User \"{$validated['name']}\" registered successfully.");
+            ->with('success', 'User registered successfully.');
     }
 
     public function edit(User $user): View
@@ -55,29 +57,29 @@ class UserController extends Controller
     public function update(Request $request, User $user): RedirectResponse
     {
         $validated = $request->validate([
-            'name'       => 'required|string|max:255',
-            'email'      => "required|email|unique:users,email,{$user->id}",
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'email' => "required|email|unique:users,email,{$user->id}",
             'contact_no' => 'nullable|string|max:20',
-            'status'     => 'required|in:Active,Inactive',
+            'status' => 'required|in:Active,Inactive',
         ]);
 
         $user->update($validated);
 
         return redirect()->route('users.index')
-            ->with('success', "User \"{$user->name}\" updated.");
+            ->with('success', 'User updated successfully.');
     }
 
     public function destroy(User $user): RedirectResponse
     {
         if ($user->activeBorrowings()->exists()) {
-            return back()->with('error', "Cannot delete \"{$user->name}\" — they have active borrowings.");
+            return back()->with('error', 'Cannot delete this user — they have active borrowings.');
         }
 
-        $name = $user->name;
         $user->delete();
 
         return redirect()->route('users.index')
-            ->with('success', "User \"{$name}\" deleted.");
+            ->with('success', 'User deleted successfully.');
     }
 
     /**
@@ -104,20 +106,22 @@ class UserController extends Controller
         }
 
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
             'email' => "required|email|unique:users,email,{$user->id}",
             'contact_no' => 'required|string|max:20',
             'password' => 'nullable|string|min:8|confirmed',
         ]);
 
         $updateData = [
-            'name' => $validated['name'],
+            'first_name' => $validated['first_name'],
+            'last_name' => $validated['last_name'],
             'email' => $validated['email'],
             'contact_no' => $validated['contact_no'],
         ];
 
-        if ($validated['password']) {
-            $updateData['password'] = \Illuminate\Support\Facades\Hash::make($validated['password']);
+        if (!empty($validated['password'])) {
+            $updateData['password'] = Hash::make($validated['password']);
         }
 
         $user->update($updateData);
@@ -125,3 +129,4 @@ class UserController extends Controller
         return back()->with('success', 'Profile updated successfully!');
     }
 }
+

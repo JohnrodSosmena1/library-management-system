@@ -35,6 +35,13 @@
                 <a href="{{ route('borrow.request') }}" class="nav-item {{ request()->routeIs('borrow.request') ? 'active' : '' }}">
                     <span class="nav-icon">📖</span> Request Book
                 </a>
+                <a href="{{ route('user.return.form') }}" class="nav-item {{ request()->routeIs('user.return.form') ? 'active' : '' }}">
+                    <span class="nav-icon">↙</span> Return Book
+@php $userOverdue = Auth::guard('user')->user()?->borrowings()->where('status', \App\Models\Borrowing::STATUS_OVERDUE)->count() ?? 0; @endphp
+                    @if($userOverdue > 0)
+                        <span class="nav-badge">{{ $userOverdue }}</span>
+                    @endif
+                </a>
                 <a href="{{ route('user.profile') }}" class="nav-item {{ request()->routeIs('user.profile') ? 'active' : '' }}">
                     <span class="nav-icon">👤</span> My Profile
                 </a>
@@ -87,9 +94,9 @@
             @if(Auth::guard('user')->check())
                 {{-- USER CARD --}}
                 <div class="librarian-card">
-                    <div class="librarian-av">{{ substr(Auth::guard('user')->user()->name, 0, 1) }}</div>
+                    <div class="librarian-av">{{ substr(Auth::guard('user')->user()->first_name ?? '', 0, 1) }}</div>
                     <div>
-                        <div class="librarian-name">{{ Auth::guard('user')->user()->name }}</div>
+                        <div class="librarian-name">{{ Auth::guard('user')->user()->fullName }}</div>
                         <div class="librarian-role">Library Member</div>
                     </div>
                 </div>

@@ -22,7 +22,7 @@ class BorrowingController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->whereHas('user', fn($q) => $q->where('name', 'like', "%{$search}%"))
+            $query->whereHas('user', fn($q) => $q->whereRaw("concat_ws(' ', first_name, last_name) like ?", ["%{$search}%"]))
                   ->orWhereHas('book', fn($q) => $q->where('title', 'like', "%{$search}%"));
         }
 
@@ -45,7 +45,7 @@ class BorrowingController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->whereHas('user', fn($q) => $q->where('name', 'like', "%{$search}%"))
+            $query->whereHas('user', fn($q) => $q->whereRaw("concat_ws(' ', first_name, last_name) like ?", ["%{$search}%"]))
                   ->orWhereHas('book', fn($q) => $q->where('title', 'like', "%{$search}%"));
         }
 
@@ -94,9 +94,9 @@ class BorrowingController extends Controller
 
     public function borrowForm(): View
     {
-        $users      = User::where('status', 'Active')->orderBy('name')->get();
+        $users      = User::where('status', 'Active')->orderBy('first_name')->get();
         $books      = Book::where('status', 'Available')->with('category')->orderBy('title')->get();
-        $librarians = Librarian::orderBy('name')->get();
+        $librarians = Librarian::orderBy('first_name')->get();
 
         return view('borrowform.form', compact('users', 'books', 'librarians'));
     }
@@ -150,22 +150,22 @@ class BorrowingController extends Controller
         // Book availability checked during approval\n        $dateBorrowed = Carbon::parse($validated['date_borrowed']);\n        $dueDate      = $dateBorrowed->copy()->addDays(Borrowing::LOAN_DAYS);
 
         $borrowing = Borrowing::create([
-            'user_id'       => $validated['user_id'],
-            'book_id'       => $validated['book_id'],
-            'librarian_id'  => $validated['librarian_id'],
-            'date_borrowed' => $dateBorrowed,
-            'due_date'      => $dueDate,
-'status'        => Borrowing::STATUS_PENDING,
+            'user_id'        => $validated['user_id'],
+            'book_id'        => $validated['book_id'],
+            'librarian_id'   => $validated['librarian_id'],
+            'date_borrowed'  => $dateBorrowed,
+            'due_date'       => $dueDate,
+            'status'         => Borrowing::STATUS_PENDING,
         ]);
 
-        // Mark book as borrowed and decrement quantity
-        $book->update([
-            'status'   => 'Borrowed',
-            'quantity' => max(0, $book->quantity - 1),
-        ]);
+        // NOTE: We do NOT change books.quantity here.
+        // Quantity updates are handled by database triggers when status changes to Borrowed/Returned.
+
+        $book = $borrowing->book;
 
         return redirect()->route('transactions.index')
-            ->with('success', "{$borrowing->formatted_id} created — \"{$book->title}\" borrowed successfully (Quantity: {$book->quantity}).");
+            ->with('success', "{$borrowing->formatted_id} created — \"{$book->title}\" borrowed successfully.");
+
     }
 
     // ── Return ───────────────────────────────────────────────
@@ -197,21 +197,31 @@ class BorrowingController extends Controller
         $returnDate = Carbon::parse($validated['return_date']);
         $penalty    = $borrowing->computed_penalty;
 
+        $book = $borrowing->book;
+
+        // Count how many copies this user returned for this book in the system.
+        // (In this app, typically each return action updates one borrowing row.)
+        $restoreQty = Borrowing::where('id', $borrowing->id)
+            ->where('book_id', $book->id)
+            ->whereIn('status', [Borrowing::STATUS_BORROWED, Borrowing::STATUS_OVERDUE])
+            ->count();
+
         $borrowing->update([
             'return_date' => $returnDate,
             'status'      => Borrowing::STATUS_RETURNED,
             'penalty'     => $penalty,
         ]);
 
-        // Mark book as available again and increment quantity
-        $borrowing->book->update([
-            'status'   => 'Available',
-            'quantity' => $borrowing->book->quantity + 1,
-        ]);
+        // Explicitly restore inventory (quantity triggers can be duplicated)
+        if ($restoreQty > 0) {
+            $book->increment('quantity', $restoreQty);
+            $book->status = 'Available';
+            $book->save();
+        }
 
         $msg = $penalty > 0
-            ? "\"{$borrowing->book->title}\" returned with a penalty of ₱{$penalty}."
-            : "\"{$borrowing->book->title}\" returned successfully. No penalty.";
+            ? "\"{$book->title}\" returned with a penalty of ₱{$penalty}."
+            : "\"{$book->title}\" returned successfully. No penalty.";
 
         return redirect()->route('transactions.index')->with('success', $msg);
     }
@@ -294,8 +304,11 @@ class BorrowingController extends Controller
         $borrowing = Borrowing::create([
             'user_id' => $user->id,
             'book_id' => $validated['book_id'],
+            // Keep request pending until librarian approval/rejection.
             'status' => Borrowing::STATUS_PENDING,
         ]);
+
+
 
         return back()->with('success', "Request for \"{$book->title}\" submitted successfully. Awaiting librarian approval.");
     }
@@ -357,7 +370,7 @@ class BorrowingController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->whereHas('user', fn($q) => $q->where('name', 'like', "%{$search}%"))
+            $query->whereHas('user', fn($q) => $q->whereRaw("concat_ws(' ', first_name, last_name) like ?", ["%{$search}%"]))
                   ->orWhereHas('book', fn($q) => $q->where('title', 'like', "%{$search}%"));
         }
 
@@ -403,15 +416,23 @@ class BorrowingController extends Controller
             'status' => Borrowing::STATUS_BORROWED,
         ]);
 
-        // Decrement book quantity
-        $book->update([
-            'status' => $book->quantity - 1 > 0 ? 'Available' : 'Borrowed',
-            'quantity' => max(0, $book->quantity - 1),
-        ]);
+        // Update inventory explicitly: this request borrows exactly 1 row (1 copy)
+        // but we still lock the row to prevent race conditions.
+        $book = $borrowing->book()->lockForUpdate()->first();
+        if ($book->quantity <= 0) {
+            $message = "Book \"{$book->title}\" is out of stock.";
+            return $request->expectsJson()
+                ? response()->json(['error' => $message], 422)
+                : back()->with('error', $message);
+        }
 
-// Redirect to Transactions after approval
+        $book->decrement('quantity');
+        $book->status = $book->quantity > 0 ? 'Available' : 'Borrowed';
+        $book->save();
+
+        // Redirect to Transactions after approval
         return redirect()->route('transactions.index')
-            ->with('success', "Request approved — \"{$book->title}\" borrowed by {$borrowing->user->name}.");
+            ->with('success', "Request approved — \"{$book->title}\" borrowed by {$borrowing->user->fullName}.");
     }
 
     /**
@@ -427,12 +448,13 @@ class BorrowingController extends Controller
         }
 
         $bookTitle = $borrowing->book->title;
-        $userName = $borrowing->user->name;
+        $userName = $borrowing->user->fullName();
 
         $borrowing->update(['status' => Borrowing::STATUS_REJECTED]);
 
         // Redirect to Transactions after rejection
         return redirect()->route('transactions.index')
-            ->with('success', "Request rejected — {$userName}'s request for \"{$bookTitle}\" has been rejected.");
+            ->with('success', "Request rejected — \"{$bookTitle}\" returned to inventory.");
     }
 }
+
