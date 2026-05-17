@@ -78,6 +78,13 @@ Route::middleware('auth:librarian')->group(function () {
     Route::get('/return', [BorrowingController::class, 'returnForm'])->name('return.form');
     Route::post('/return', [BorrowingController::class, 'processReturn'])->name('return.process');
 
-    // All transactions
+    // Borrowed Books List
+    Route::get('/borrowed-books', [BorrowingController::class, 'borrowedBooksIndex'])->name('borrowed-books.index');
+
+    // Overdue Books
+    Route::get('/overdue-books', [BorrowingController::class, 'overdueBooksIndex'])->name('overdue-books.index');
+
+    // All transactions (Complete Transaction History)
     Route::get('/transactions', [BorrowingController::class, 'index'])->name('transactions.index');
 });
+

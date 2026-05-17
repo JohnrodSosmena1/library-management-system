@@ -90,9 +90,46 @@ class BorrowingController extends Controller
         return response()->json(['success' => "Borrowing request rejected."]);
     }
 
+    // ── Borrowed Books List ───────────────────────────────────────────────
+
+    public function borrowedBooksIndex(Request $request): View
+    {
+        $query = Borrowing::with(['user', 'book', 'librarian'])
+            ->where('status', Borrowing::STATUS_BORROWED);
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('user', fn($q) => $q->whereRaw("concat_ws(' ', first_name, last_name) like ?", ["%{$search}%"]))
+                ->orWhereHas('book', fn($q) => $q->where('title', 'like', "%{$search}%"));
+        }
+
+        $borrowed = $query->latest()->paginate(10)->withQueryString();
+
+        return view('borrowed-books.index', compact('borrowed'));
+    }
+
+    // ── Overdue Books List ───────────────────────────────────────────────
+
+    public function overdueBooksIndex(Request $request): View
+    {
+        $query = Borrowing::with(['user', 'book', 'librarian'])
+            ->where('status', Borrowing::STATUS_OVERDUE);
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('user', fn($q) => $q->whereRaw("concat_ws(' ', first_name, last_name) like ?", ["%{$search}%"]))
+                ->orWhereHas('book', fn($q) => $q->where('title', 'like', "%{$search}%"));
+        }
+
+        $overdue = $query->latest()->paginate(10)->withQueryString();
+
+        return view('overdue-books.index', compact('overdue'));
+    }
+
     // ── Borrow ───────────────────────────────────────────────
 
     public function borrowForm(): View
+
     {
         $users      = User::where('status', 'Active')->orderBy('first_name')->get();
         $books      = Book::where('status', 'Available')->with('category')->orderBy('title')->get();
