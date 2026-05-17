@@ -27,7 +27,9 @@ class DatabaseSeeder extends Seeder
         $categories = collect([
             'Fantasy', 'History', 'Science', 'Technology',
             'Political Science', 'Literature', 'Arts', 'Reference',
+            'Philosophy', 'Math', 'Health', 'Economics', 'Religion',
         ])->mapWithKeys(fn ($name) => [$name => Category::firstOrCreate(['name' => $name])]);
+
 
         // Ensure ONLY ONE Head Librarian exists in the table.
         // If any other row currently has role='Head Librarian', downgrade it.
@@ -97,12 +99,70 @@ class DatabaseSeeder extends Seeder
             $userModels[$data['name']] = User::create($data);
         }
 
-        // Seed transactions
-        // NOTE: Current schema + existing triggers/controllers can decrement book quantity in a way
-        // that makes repeated seeding fail (quantity underflow / BIGINT unsigned underflow).
-        // To keep focus on first_name/last_name visibility, we skip borrowing seed here.
-        // You can re-enable later after aligning Borrowing schema & trigger side-effects.
-        return;
+        // Borrowings / Transactions
+        // Create sample borrow records so they appear in phpMyAdmin immediately.
+        // NOTE: Triggers (created in 2026_05_09_000001_create_library_triggers_if_missing.php)
+        // will handle quantity/status updates when the triggers exist.
+
+        $uJohn  = User::where('email', 'johndoe@gmail.com')->first();
+        $uMaria = User::where('email', 'mcruz@email.com')->first();
+        $uRico  = User::where('email', 'ricot@email.com')->first();
+        $uLisa  = User::where('email', 'lisago@email.com')->first();
+        $uBen   = User::where('email', 'benlim@email.com')->first();
+
+        // If triggers are not installed, this still works; it will just not auto-update quantities.
+        // Use CURRENT date-based values so overdue computations are consistent.
+        $borrowedAt = Carbon::now()->subDays(10)->toDateString();
+        $dueAt      = Carbon::now()->subDays(3)->toDateString();
+
+        // Avoid exhausting quantities due to trigger-based decrement.
+        // Keep each additional overdue row for distinct books where possible.
+
+
+        $borrowings = [
+            // Pending (request waiting for librarian approval)
+            ['book' => 'Dreams', 'user' => $uJohn,  'status' => 'Pending',  'borrow_date' => null, 'due_date' => null, 'return_date' => null],
+            ['book' => 'Cosmos', 'user' => $uMaria, 'status' => 'Pending',  'borrow_date' => null, 'due_date' => null, 'return_date' => null],
+
+            // Borrowed (not overdue)
+            ['book' => 'Love', 'user' => $uJohn,  'status' => 'Borrowed', 'borrow_date' => $borrowedAt, 'due_date' => Carbon::now()->addDays(7)->toDateString(), 'return_date' => null],
+            ['book' => 'Cosmos', 'user' => $uBen,   'status' => 'Borrowed', 'borrow_date' => Carbon::now()->subDays(6)->toDateString(), 'due_date' => Carbon::now()->addDays(9)->toDateString(), 'return_date' => null],
+            ['book' => 'Noli Me Tangere', 'user' => $uLisa, 'status' => 'Borrowed', 'borrow_date' => Carbon::now()->subDays(8)->toDateString(), 'due_date' => Carbon::now()->addDays(15)->toDateString(), 'return_date' => null],
+
+            // Overdue
+            ['book' => 'Philippine Politics', 'user' => $uRico, 'status' => 'Overdue', 'borrow_date' => Carbon::now()->subDays(20)->toDateString(), 'due_date' => $dueAt, 'return_date' => null],
+            ['book' => 'Cosmos', 'user' => $uRico, 'status' => 'Overdue', 'borrow_date' => Carbon::now()->subDays(16)->toDateString(), 'due_date' => Carbon::now()->subDays(9)->toDateString(), 'return_date' => null],
+            ['book' => 'Love', 'user' => $uMaria, 'status' => 'Overdue', 'borrow_date' => Carbon::now()->subDays(14)->toDateString(), 'due_date' => Carbon::now()->subDays(7)->toDateString(), 'return_date' => null],
+
+            // Returned (with some late returns to show fines)
+            ['book' => 'Noli Me Tangere', 'user' => $uLisa, 'status' => 'Returned', 'borrow_date' => Carbon::now()->subDays(30)->toDateString(), 'due_date' => Carbon::now()->subDays(20)->toDateString(), 'return_date' => Carbon::now()->subDays(5)->toDateString()],
+            ['book' => 'Love', 'user' => $uBen, 'status' => 'Returned', 'borrow_date' => Carbon::now()->subDays(12)->toDateString(), 'due_date' => Carbon::now()->subDays(6)->toDateString(), 'return_date' => Carbon::now()->subDays(4)->toDateString()],
+
+            // Rejected (request denied)
+            ['book' => 'Intro to Programming', 'user' => $uJohn, 'status' => 'Rejected', 'borrow_date' => null, 'due_date' => null, 'return_date' => null],
+        ];
+
+        foreach ($borrowings as $b) {
+            $book = $bookModels[$b['book']] ?? Book::where('title', $b['book'])->first();
+            if (!$book || !$b['user']) {
+                continue;
+            }
+
+            Borrowing::updateOrCreate(
+                [
+                    'user_id' => $b['user']->id,
+                    'book_id' => $book->id,
+                    'status'  => $b['status'],
+                ],
+                [
+                    'date_borrowed' => $b['borrow_date'],
+                    'due_date'      => $b['due_date'],
+                    'return_date'   => $b['return_date'],
+                ]
+            );
+        }
+
     }
 }
+
 

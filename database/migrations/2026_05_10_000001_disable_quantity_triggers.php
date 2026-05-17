@@ -13,9 +13,11 @@ return new class extends Migration
             return;
         }
 
-        DB::unprepared('DROP TRIGGER IF EXISTS after_borrowing_insert');
-        DB::unprepared('DROP TRIGGER IF EXISTS after_borrowing_return_update');
-        DB::unprepared('DROP TRIGGER IF EXISTS before_borrowing_prevent_unavailable');
+        // Kept triggers so they remain visible in phpMyAdmin under the `Triggers` tab.
+        // Triggers are managed by the earlier trigger creation migrations.
+        // DB::unprepared('DROP TRIGGER IF EXISTS after_borrowing_insert');
+        // DB::unprepared('DROP TRIGGER IF EXISTS after_borrowing_return_update');
+        // DB::unprepared('DROP TRIGGER IF EXISTS before_borrowing_prevent_unavailable');
     }
 
     public function down(): void
