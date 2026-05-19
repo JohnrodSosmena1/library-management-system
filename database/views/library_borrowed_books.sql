@@ -1,6 +1,3 @@
--- MySQL View: borrowed books (status = 'Borrowed')
--- Usage in phpMyAdmin: use this SQL under your database
-
 CREATE OR REPLACE VIEW borrowed_books_list AS
 SELECT
     b.id AS borrowing_id,

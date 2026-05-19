@@ -14,7 +14,7 @@ return new class extends Migration
 
 
         DB::unprepared('DROP TRIGGER IF EXISTS after_borrowing_insert');
-        DB::unprepared('DROP TRIGGER IF EXISTS after_borrowing_return_update');
+        DB::unprepared('DROP TRIGGER IF EXISTS after_borrowing_status_update');
         DB::unprepared('DROP TRIGGER IF EXISTS before_borrowing_prevent_unavailable');
 
         // 1) Validate quantity before insert
@@ -31,7 +31,7 @@ return new class extends Migration
             END
         ");
 
-        // 2) Decrement quantity and update book status when borrowed
+        // Decrement quantity and update book status when borrowed
         DB::unprepared("
             CREATE TRIGGER after_borrowing_insert
             AFTER INSERT ON borrowings
@@ -54,14 +54,50 @@ return new class extends Migration
             END
         ");
 
-        // 3) Update book status when returned
-        DB::unprepared("\n            CREATE TRIGGER after_borrowing_return_update\n            AFTER UPDATE ON borrowings\n            FOR EACH ROW\n            BEGIN\n                IF NEW.status = 'Returned' AND OLD.status != 'Returned' THEN\n                    -- restore inventory\n                    UPDATE books\n                    SET quantity = quantity + 1\n                    WHERE id = NEW.book_id;\n\n                    -- update status based on remaining quantity\n                    UPDATE books\n                    SET status = CASE\n                        WHEN quantity > 0 THEN 'Available'\n                        ELSE 'Borrowed'\n                    END\n                    WHERE id = NEW.book_id;\n                END IF;\n            END\n        ");
+        //  Handle quantity changes on borrowing status UPDATE
+        DB::unprepared("
+            CREATE TRIGGER after_borrowing_status_update
+            AFTER UPDATE ON borrowings
+            FOR EACH ROW
+            BEGIN
+                -- When status changes to 'Borrowed' (approval case)
+                IF NEW.status = 'Borrowed' AND OLD.status != 'Borrowed' THEN
+                    -- decrement inventory
+                    UPDATE books
+                    SET quantity = GREATEST(quantity - 1, 0)
+                    WHERE id = NEW.book_id;
+
+                    -- update status based on remaining quantity
+                    UPDATE books
+                    SET status = CASE
+                        WHEN quantity > 0 THEN 'Available'
+                        ELSE 'Borrowed'
+                    END
+                    WHERE id = NEW.book_id;
+
+                -- When status changes to 'Returned' (return case)
+                ELSEIF NEW.status = 'Returned' AND OLD.status != 'Returned' THEN
+                    -- restore inventory
+                    UPDATE books
+                    SET quantity = quantity + 1
+                    WHERE id = NEW.book_id;
+
+                    -- update status based on remaining quantity
+                    UPDATE books
+                    SET status = CASE
+                        WHEN quantity > 0 THEN 'Available'
+                        ELSE 'Borrowed'
+                    END
+                    WHERE id = NEW.book_id;
+                END IF;
+            END
+        ");
     }
 
     public function down(): void
     {
         DB::unprepared('DROP TRIGGER IF EXISTS after_borrowing_insert');
-        DB::unprepared('DROP TRIGGER IF EXISTS after_borrowing_return_update');
+        DB::unprepared('DROP TRIGGER IF EXISTS after_borrowing_status_update');
         DB::unprepared('DROP TRIGGER IF EXISTS before_borrowing_prevent_unavailable');
     }
 };

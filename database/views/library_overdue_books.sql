@@ -1,6 +1,3 @@
--- MySQL View: overdue books (status = 'Overdue')
--- Usage in phpMyAdmin: use this SQL under your database
-
 CREATE OR REPLACE VIEW overdue_books_list AS
 SELECT
     b.id AS borrowing_id,

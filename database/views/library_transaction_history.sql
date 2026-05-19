@@ -1,6 +1,3 @@
--- MySQL View: complete transaction history
--- Usage in phpMyAdmin: use this SQL under your database
-
 CREATE OR REPLACE VIEW transaction_history_list AS
 SELECT
     b.id AS borrowing_id,
@@ -13,7 +10,6 @@ SELECT
     CONCAT_WS(' ', u.first_name, u.last_name) AS user_name,
     bk.id AS book_id,
     bk.title AS book_title,
-    -- days late: when overdue, compute from due_date; when returned, compute from return_date
     CASE
         WHEN b.status = 'Overdue' THEN GREATEST(DATEDIFF(CURDATE(), b.due_date), 0)
         WHEN b.status = 'Returned' AND b.return_date IS NOT NULL THEN GREATEST(DATEDIFF(b.return_date, b.due_date), 0)

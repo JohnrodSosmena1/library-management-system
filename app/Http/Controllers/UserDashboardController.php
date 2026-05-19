@@ -11,9 +11,7 @@ use Illuminate\Support\Facades\DB;
 
 class UserDashboardController extends Controller
 {
-    /**
-     * Display the user dashboard
-     */
+    
     public function index()
     {
         $user = Auth::guard('user')->user();
@@ -22,38 +20,32 @@ class UserDashboardController extends Controller
             return redirect('/login');
         }
 
-        // Get user's borrowing statistics
         $activeBorrows = $user->activeBorrowings()->count();
         $pendingRequests = $user->borrowings()->where('status', Borrowing::STATUS_PENDING)->count();
         $overdueBorrows = $user->borrowings()->where('status', Borrowing::STATUS_OVERDUE)->count();
 
-        // Calculate total penalties
         $totalPenalties = $user->borrowings()
             ->where('status', Borrowing::STATUS_RETURNED)
             ->sum('penalty');
 
-        // Get pending requests with book details
         $pendingBorrowings = $user->borrowings()
             ->with(['book'])
             ->where('status', Borrowing::STATUS_PENDING)
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Get approved borrowings with details
         $approvedBorrowings = $user->borrowings()
             ->with(['book', 'librarian'])
             ->whereIn('status', [Borrowing::STATUS_BORROWED, Borrowing::STATUS_OVERDUE])
             ->orderBy('due_date', 'asc')
             ->get();
 
-        // Get transaction history (returned & rejected)
         $transactionHistory = $user->borrowings()
             ->with(['book'])
             ->whereIn('status', [Borrowing::STATUS_RETURNED, Borrowing::STATUS_REJECTED, Borrowing::STATUS_OVERDUE])
             ->orderBy('created_at', 'desc')
             ->paginate(5);
 
-        // Get available books for edit modal
         $availableBooks = Book::where('status', 'Available')
             ->orWhere('status', Borrowing::STATUS_BORROWED)
             ->with('category')
@@ -73,9 +65,7 @@ class UserDashboardController extends Controller
         ));
     }
 
-    /**
-     * Show form for user to return their book
-     */
+    
     public function userReturnForm()
     {
         $user = Auth::guard('user')->user();
@@ -88,9 +78,7 @@ class UserDashboardController extends Controller
         return view('user.return-form', compact('activeBorrowings'));
     }
 
-    /**
-     * Process user book return
-     */
+   
     public function processUserReturn(Request $request)
     {
         $validated = $request->validate([
@@ -99,9 +87,7 @@ class UserDashboardController extends Controller
             'condition'    => 'required|in:Good,Slightly damaged,Damaged',
         ]);
 
-        // Ensure we update return using the shared admin flow behavior (inventory + transaction atomicity)
-        // and the correct inventory restoration logic used by BorrowingController.
-        // This prevents "returned" records from not appearing in admin return/transaction views.
+
         $borrowing = Borrowing::with('book')->findOrFail($validated['borrowing_id']);
         $user = Auth::guard('user')->user();
 
@@ -121,14 +107,12 @@ class UserDashboardController extends Controller
         $returnDate = Carbon::parse($validated['return_date']);
         $penalty = $borrowing->computed_penalty;
 
-        // Calculate restore quantity BEFORE updating status
         $book = $borrowing->book()->lockForUpdate()->first();
         $restoreQty = Borrowing::where('id', $borrowing->id)
             ->where('book_id', $book->id)
             ->whereIn('status', [Borrowing::STATUS_BORROWED, Borrowing::STATUS_OVERDUE])
             ->count();
 
-        // Record the return so it appears in the admin Return Book page immediately.
         $borrowing->update([
             'return_date' => $returnDate,
             'status'      => Borrowing::STATUS_RETURNED,
@@ -136,10 +120,6 @@ class UserDashboardController extends Controller
         ]);
 
 
-        // Restore book quantity and status
-
-        // Your library quantity triggers are disabled in app-level logic, and admin return logic restores quantity manually.
-        // Do the same here so inventory + status transitions are reflected consistently in admin views.
         if ($restoreQty > 0) {
             $book->increment('quantity', $restoreQty);
             $book->status = 'Available';

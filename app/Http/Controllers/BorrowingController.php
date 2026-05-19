@@ -55,9 +55,7 @@ class BorrowingController extends Controller
         return view('borrowing.index', compact('borrowings'));
     }
 
-    /**
-     * Update borrowing details (edit)
-     */
+    
     public function updateBorrowing(Request $request, Borrowing $borrowing): RedirectResponse
     {
         if (!in_array($borrowing->status, [Borrowing::STATUS_BORROWED, Borrowing::STATUS_OVERDUE])) {
@@ -77,9 +75,6 @@ class BorrowingController extends Controller
         return back()->with('success', 'Borrowing updated successfully.');
     }
 
-    /**
-     * Reject borrowing from management page
-     */
     public function rejectFromManagement(Request $request, Borrowing $borrowing): JsonResponse
     {
         if ($borrowing->status !== Borrowing::STATUS_PENDING) {
@@ -180,9 +175,7 @@ class BorrowingController extends Controller
         ]);
 
         try {
-            // Wrap creation in transaction for consistency
             $result = DB::transaction(function () use ($validated) {
-                // Re-check eligibility server-side
                 $eligibility = Borrowing::checkEligibility($validated['user_id']);
                 if (!$eligibility['eligible']) {
                     throw new \Exception($eligibility['message']);
@@ -201,7 +194,6 @@ class BorrowingController extends Controller
                     'status'         => Borrowing::STATUS_PENDING,
                 ]);
 
-                // NOTE: Quantity is NOT modified here. Updates handled on approval/return via database triggers.
 
                 return $borrowing;
             });
@@ -237,7 +229,6 @@ class BorrowingController extends Controller
         ]);
 
         try {
-            // Wrap entire return process in transaction for atomicity
             $msg = DB::transaction(function () use ($validated) {
                 $borrowing = Borrowing::with(['book'])->findOrFail($validated['borrowing_id']);
 
@@ -247,7 +238,8 @@ class BorrowingController extends Controller
 
                 $returnDate = Carbon::parse($validated['return_date']);
                 $penalty    = $borrowing->computed_penalty;
-                $book = $borrowing->book;
+                
+                $book = Book::lockForUpdate()->find($borrowing->book_id);
 
                 $borrowing->update([
                     'return_date' => $returnDate,
@@ -255,8 +247,10 @@ class BorrowingController extends Controller
                     'penalty'     => $penalty,
                 ]);
 
-                // Restore inventory via database trigger on status update to 'Returned'
-                // Trigger will auto-update book status to 'Available'
+                //triggers.
+                $book->status = 'Available';
+                $book->save();
+
 
                 return $penalty > 0
                     ? "\"{$book->title}\" returned with a penalty of ₱{$penalty}."
@@ -271,7 +265,6 @@ class BorrowingController extends Controller
 
     public function markOverdue(): void
     {
-        // Wrap overdue marking in transaction for consistency
         DB::transaction(function () {
             Borrowing::where('status', Borrowing::STATUS_BORROWED)
                 ->where('due_date', '<', now()->toDateString())
@@ -421,7 +414,8 @@ class BorrowingController extends Controller
         try {
    
             $result = DB::transaction(function () use ($borrowing, $validated) {
-                $book = $borrowing->book;
+                // Lock book for update to prevent race conditions
+                $book = Book::lockForUpdate()->find($borrowing->book_id);
 
                 if ($book->quantity <= 0) {
                     throw new \Exception("Book \"{$book->title}\" is out of stock.");
@@ -437,12 +431,10 @@ class BorrowingController extends Controller
                     'status' => Borrowing::STATUS_BORROWED,
                 ]);
 
-                // Database trigger after_borrowing_insert will automatically:
-                // 1. Decrement book quantity
-                // 2. Update book status based on remaining quantity
+                $book->decrement('quantity');
 
-                // Refresh book to reflect trigger updates
-                $book->refresh();
+                $book->status = $book->quantity > 0 ? 'Available' : 'Borrowed';
+                $book->save();
 
                 return $book;
             });
