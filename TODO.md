@@ -1,6 +1,8 @@
-- [x] Gather repo context (seeders, borrowings model/controller/view, migrations)
-- [x] Detect schema mismatch for `borrowings.status` (Pending/Rejected expected by UI)
-- [x] Update `database/seeders/DatabaseSeeder.php` to seed Pending/Rejected along with Borrowed/Overdue/Returned
-- [ ] Verify/ensure a migration exists that allows `Pending` + `Rejected` in `borrowings.status`
-- [ ] Run `php artisan db:seed --class=DatabaseSeeder`
-- [ ] Open `/transactions` and confirm filters + row colors/fine display
+# TODO
+
+- [x] Add migration to drop `name` column from `users` and `librarians`
+- [x] Update `AuthController@register` to stop writing `name` and only use `first_name`/`last_name`
+- [x] Update `app/Models/User.php` remove `name` from `$fillable`
+- [ ] Verify codebase for any direct `$user->name` / `->name` usage that refers to DB column (replace with `fullName()` or first/last)
+- [ ] Run `php artisan migrate`
+- [ ] Smoke test: register + profile full name

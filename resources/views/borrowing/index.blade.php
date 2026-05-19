@@ -85,7 +85,7 @@
                                     <span class="fw-bold">USR-{{ str_pad($borrowing->user->id, 3, '0', STR_PAD_LEFT) }}</span>
                                 </td>
                                 <td>
-                                    <strong>{{ $borrowing->user->name }}</strong>
+<strong>{{ $borrowing->user->fullName() }}</strong>
                                 </td>
                                 <td>
                                     <div class="fw-bold">{{ $borrowing->book->title }}</div>
@@ -167,7 +167,7 @@
                                             @csrf
                                             @method('PUT')
                                             <div class="modal-body">
-                                                <p><strong>User:</strong> {{ $borrowing->user->name }}</p>
+                                                <p><strong>User:</strong> {{ $borrowing->user->fullName() }}</p>
                                                 <p><strong>Book:</strong> {{ $borrowing->book->title }}</p>
 
                                                 <div class="mb-3">
@@ -182,10 +182,10 @@
                                                     <select class="form-select" id="librarian_id_{{ $borrowing->id }}" 
                                                             name="librarian_id" required>
                                                         <option value="">-- Select Librarian --</option>
-                                                        @foreach(\App\Models\Librarian::orderBy('name')->get() as $librarian)
+@foreach(\App\Models\Librarian::orderBy('first_name')->get() as $librarian)
                                                             <option value="{{ $librarian->id }}" 
                                                                     {{ auth('librarian')->user()->id === $librarian->id ? 'selected' : '' }}>
-                                                                {{ $librarian->name }} ({{ $librarian->role }})
+                                                                {{ trim(($librarian->first_name ?? '') . ' ' . ($librarian->last_name ?? '')) }} ({{ $librarian->role }})
                                                             </option>
                                                         @endforeach
                                                     </select>
@@ -214,7 +214,7 @@
                                             @csrf
                                             @method('PUT')
                                             <div class="modal-body">
-                                                <p><strong>User:</strong> {{ $borrowing->user->name }}</p>
+                                                <p><strong>User:</strong> {{ $borrowing->user->fullName() }}</p>
                                                 <p><strong>Book:</strong> {{ $borrowing->book->title }}</p>
 
                                                 <div class="mb-3">
@@ -229,10 +229,10 @@
                                                     <select class="form-select" id="librarian_id_edit_{{ $borrowing->id }}" 
                                                             name="librarian_id" required>
                                                         <option value="">-- Select Librarian --</option>
-                                                        @foreach(\App\Models\Librarian::orderBy('name')->get() as $librarian)
+                                                        @foreach(\App\Models\Librarian::orderBy('first_name')->get() as $librarian)
                                                             <option value="{{ $librarian->id }}" 
                                                                     {{ $borrowing->librarian_id === $librarian->id ? 'selected' : '' }}>
-                                                                {{ $librarian->name }} ({{ $librarian->role }})
+                                                                {{ trim(($librarian->first_name ?? '') . ' ' . ($librarian->last_name ?? '')) }} ({{ $librarian->role }})
                                                             </option>
                                                         @endforeach
                                                     </select>

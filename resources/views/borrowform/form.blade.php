@@ -28,7 +28,7 @@
                         <option value="">— Select a registered user —</option>
                         @foreach($users as $user)
                             <option value="{{ $user->id }}" {{ old('user_id') == $user->id ? 'selected' : '' }}>
-                                {{ $user->name }} (USR-{{ str_pad($user->id, 3, '0', STR_PAD_LEFT) }})
+                                {{ $user->fullName() }} (USR-{{ str_pad($user->id, 3, '0', STR_PAD_LEFT) }})
                             </option>
                         @endforeach
                     </select>
@@ -60,7 +60,7 @@
                     <select name="librarian_id" id="librarian-select" class="form-select">
                         @foreach($librarians as $lib)
                             <option value="{{ $lib->id }}" {{ old('librarian_id') == $lib->id ? 'selected' : '' }}>
-                                {{ $lib->name }} — {{ $lib->role }}
+                                {{ $lib->fullName() }} — {{ $lib->role }}
                             </option>
                         @endforeach
                     </select>

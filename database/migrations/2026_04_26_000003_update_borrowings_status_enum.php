@@ -15,6 +15,8 @@ return new class extends Migration
 
     public function down(): void
     {
-        DB::statement("ALTER TABLE borrowings MODIFY status ENUM('Borrowed', 'Returned', 'Overdue') DEFAULT 'Borrowed'");
+        // Safely revert to VARCHAR to avoid ENUM constraint issues
+        // The down() doesn't need to re-enforce limited ENUM values
+        DB::statement("ALTER TABLE borrowings MODIFY status VARCHAR(20) NOT NULL DEFAULT 'Pending'");
     }
 };

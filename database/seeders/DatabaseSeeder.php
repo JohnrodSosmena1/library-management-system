@@ -43,7 +43,6 @@ class DatabaseSeeder extends Seeder
             [
                 'first_name' => 'John',
                 'last_name'  => 'Doe',
-                'name'       => 'John Doe',
                 'password'   => Hash::make('admin123'),
                 'contact_no' => '09000000000',
                 'role'       => 'Head Librarian',
@@ -56,7 +55,6 @@ class DatabaseSeeder extends Seeder
             [
                 'first_name' => 'James',
                 'last_name'  => 'Brian',
-                'name'       => 'James Brian',
                 'password'   => Hash::make('password'),
                 'contact_no' => '09123456789',
                 'role'       => 'Librarian',
@@ -64,12 +62,20 @@ class DatabaseSeeder extends Seeder
         );
 
         // Books
+        // Quantities adjusted to match borrowing records below
+        // Must accommodate active borrowings (Borrowed + Overdue status)
         $books = [
+            // Love: 1 Borrowed + 1 Overdue = 2 active → qty=2
             ['title' => 'Love',                 'author' => 'James Benedict',     'category' => 'Fantasy',          'isbn' => '978-1-111-00001-0', 'quantity' => 2,  'status' => 'Borrowed'],
-            ['title' => 'Dreams',               'author' => 'Elizabeth Laurence', 'category' => 'Fantasy',          'isbn' => '978-1-111-00002-0', 'quantity' => 1,  'status' => 'Borrowed'],
-            ['title' => 'Noli Me Tangere',      'author' => 'Jose Rizal',         'category' => 'History',          'isbn' => '978-971-000-001-0', 'quantity' => 3,  'status' => 'Available'],
-            ['title' => 'Philippine Politics',  'author' => 'Maria Santos',       'category' => 'Political Science','isbn' => '978-971-000-002-0', 'quantity' => 1,  'status' => 'Overdue'],
-            ['title' => 'Cosmos',               'author' => 'Carl Sagan',         'category' => 'Science',          'isbn' => '978-0-345-33135-9', 'quantity' => 2,  'status' => 'Available'],
+            // Dreams: 0 active (1 Pending doesn't count) → qty=1
+            ['title' => 'Dreams',               'author' => 'Elizabeth Laurence', 'category' => 'Fantasy',          'isbn' => '978-1-111-00002-0', 'quantity' => 1,  'status' => 'Available'],
+            // Noli Me Tangere: 1 Borrowed = 1 active → qty=2 (has 1 extra available)
+            ['title' => 'Noli Me Tangere',      'author' => 'Jose Rizal',         'category' => 'History',          'isbn' => '978-971-000-001-0', 'quantity' => 2,  'status' => 'Borrowed'],
+            // Philippine Politics: 1 Overdue = 1 active → qty=2 (has 1 extra available)
+            ['title' => 'Philippine Politics',  'author' => 'Maria Santos',       'category' => 'Political Science','isbn' => '978-971-000-002-0', 'quantity' => 2,  'status' => 'Overdue'],
+            // Cosmos: 1 Borrowed + 1 Overdue = 2 active (Pending doesn't count) → qty=2
+            ['title' => 'Cosmos',               'author' => 'Carl Sagan',         'category' => 'Science',          'isbn' => '978-0-345-33135-9', 'quantity' => 2,  'status' => 'Borrowed'],
+            // Intro to Programming: 0 active (1 Rejected doesn't count) → qty=4
             ['title' => 'Intro to Programming', 'author' => 'Ana Reyes',          'category' => 'Technology',       'isbn' => '978-1-111-00006-0', 'quantity' => 4,  'status' => 'Available'],
         ];
 
@@ -87,16 +93,17 @@ class DatabaseSeeder extends Seeder
 
         // Users
         $users = [
-            ['name' => 'John Doe',   'email' => 'johndoe@gmail.com',  'contact_no' => '09171234567'],
-            ['name' => 'Maria Cruz', 'email' => 'mcruz@email.com',     'contact_no' => '09281234567'],
-            ['name' => 'Rico Tan',   'email' => 'ricot@email.com',     'contact_no' => '09391234567'],
-            ['name' => 'Lisa Go',    'email' => 'lisago@email.com',    'contact_no' => '09451234567'],
-            ['name' => 'Ben Lim',    'email' => 'benlim@email.com',    'contact_no' => '09561234567'],
+            ['first_name' => 'John',   'last_name' => 'Doe',   'email' => 'johndoe@gmail.com',  'contact_no' => '09171234567', 'status' => 'Active'],
+            ['first_name' => 'Maria',  'last_name' => 'Cruz',  'email' => 'mcruz@email.com',     'contact_no' => '09281234567', 'status' => 'Active'],
+            ['first_name' => 'Rico',   'last_name' => 'Tan',   'email' => 'ricot@email.com',     'contact_no' => '09391234567', 'status' => 'Active'],
+            ['first_name' => 'Lisa',   'last_name' => 'Go',    'email' => 'lisago@email.com',    'contact_no' => '09451234567', 'status' => 'Active'],
+            ['first_name' => 'Ben',    'last_name' => 'Lim',   'email' => 'benlim@email.com',    'contact_no' => '09561234567', 'status' => 'Active'],
         ];
 
         $userModels = [];
         foreach ($users as $data) {
-            $userModels[$data['name']] = User::create($data);
+            $fullName = $data['first_name'] . ' ' . $data['last_name'];
+            $userModels[$fullName] = User::create($data);
         }
 
         // Borrowings / Transactions

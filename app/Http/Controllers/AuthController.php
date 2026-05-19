@@ -11,17 +11,13 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    /**
-     * Show the registration form
-     */
+
     public function registerForm()
     {
         return view('auth.register');
     }
 
-    /**
-     * Handle user registration
-     */
+    
     public function register(Request $request)
     {
         $validated = $request->validate([
@@ -34,19 +30,14 @@ class AuthController extends Controller
 
         try {
             $user = User::create([
-                // Your current DB users table still expects `name`.
-                // Keep first/last for app logic.
-                // Also set `name` because your current DB users table still has a required `name` column.
                 'first_name' => $validated['first_name'],
                 'last_name' => $validated['last_name'],
-'name' => trim($validated['first_name'] . ' ' . $validated['last_name']),
                 'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
                 'contact_no' => $validated['contact_no'],
                 'status' => 'Active',
             ]);
 
-            // Auto-login after registration
             Auth::guard('user')->login($user);
 
             return redirect('/dashboard')->with('success', 'Registration successful! Welcome to the library.');
@@ -62,17 +53,13 @@ class AuthController extends Controller
         }
     }
 
-    /**
-     * Show the login form
-     */
+ 
     public function loginForm()
     {
         return view('auth.login');
     }
 
-    /**
-     * Handle login for both users and librarians
-     */
+    
     public function login(Request $request)
     {
         $request->validate([

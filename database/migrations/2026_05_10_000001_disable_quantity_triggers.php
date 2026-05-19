@@ -8,22 +8,14 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Remove quantity/status triggers to avoid double increment/decrement.
+      
         if (!Schema::hasTable('books') || !Schema::hasTable('borrowings')) {
             return;
         }
-
-        // Kept triggers so they remain visible in phpMyAdmin under the `Triggers` tab.
-        // Triggers are managed by the earlier trigger creation migrations.
-        // DB::unprepared('DROP TRIGGER IF EXISTS after_borrowing_insert');
-        // DB::unprepared('DROP TRIGGER IF EXISTS after_borrowing_return_update');
-        // DB::unprepared('DROP TRIGGER IF EXISTS before_borrowing_prevent_unavailable');
     }
 
     public function down(): void
     {
-        // Recreate is intentionally not done here.
-        // Quantity is managed in application code.
     }
 };
 

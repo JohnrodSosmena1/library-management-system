@@ -58,7 +58,7 @@
                         @foreach($borrowed as $row)
                             <tr>
                                 <td><strong class="font-monospace">{{ $row->formatted_id }}</strong></td>
-                                <td>{{ $row->user->name ?? '—' }}</td>
+<td>{{ $row->user->fullName() ?? '—' }}</td>
                                 <td class="fw-bold">{{ $row->book->title ?? '—' }}</td>
                                 <td class="text-muted font-monospace">{{ $row->date_borrowed?->format('M d, Y') ?? '—' }}</td>
                                 <td class="text-muted font-monospace">{{ $row->due_date?->format('M d, Y') ?? '—' }}</td>

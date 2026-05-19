@@ -103,16 +103,16 @@
                             <div class="d-flex justify-content-between align-items-start">
                                 <div class="flex-grow-1">
                                     <div class="mb-2">
-                                        @if($isReturn)
-                                            <span class="fw-bold text-dark">{{ $txn->user->name }}</span>
+                                            @if($isReturn)
+                                            <span class="fw-bold text-dark">{{ $txn->user->fullName() }}</span>
                                             <span class="text-muted">returned</span>
                                             <span class="fw-bold text-dark">{{ $txn->book->title }}</span>
                                         @elseif($isOverdue)
                                             <span class="fw-bold text-dark">{{ $txn->book->title }}</span>
                                             <span class="text-muted">is overdue —</span>
-                                            <span class="fw-bold text-dark">{{ $txn->user->name }}</span>
+                                            <span class="fw-bold text-dark">{{ $txn->user->fullName() }}</span>
                                         @else
-                                            <span class="fw-bold text-dark">{{ $txn->user->name }}</span>
+                                            <span class="fw-bold text-dark">{{ $txn->user->fullName() }}</span>
                                             <span class="text-muted">borrowed</span>
                                             <span class="fw-bold text-dark">{{ $txn->book->title }}</span>
                                         @endif
@@ -227,7 +227,7 @@
                                         @foreach($recentPendingRequests as $req)
                                             <tr>
                                                 <td>
-                                                    <div class="fw-bold">{{ $req->user->name }}</div>
+                                                    <div class="fw-bold">{{ $req->user->fullName() }}</div>
                                                     <small class="text-muted">{{ $req->user->contact_no }}</small>
                                                 </td>
                                                 <td>
@@ -285,7 +285,7 @@
                                     @foreach($overdueList as $txn)
                                         <tr class="table-danger-light">
                                             <td>
-                                                <div class="fw-bold">{{ $txn->user->name }}</div>
+                                                <div class="fw-bold">{{ $txn->user->fullName() }}</div>
                                                 <small class="text-muted">ID: {{ $txn->user->id }}</small>
                                             </td>
                                             <td>

@@ -80,7 +80,7 @@
                         @foreach($transactions as $txn)
                             <tr class="{{ $txn->status === 'Overdue' || $txn->status === 'Rejected' ? 'table-danger' : '' }}">
                                 <td><strong class="font-monospace">{{ $txn->formatted_id }}</strong></td>
-                                <td>{{ $txn->user->name }}</td>
+<td>{{ $txn->user->fullName() }}</td>
                                 <td class="fw-bold">{{ $txn->book->title }}</td>
                                 <td class="text-muted font-monospace">
                                     {{ $txn->date_borrowed?->format('M d, Y') ?? '—' }}

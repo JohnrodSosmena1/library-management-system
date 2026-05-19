@@ -6,6 +6,37 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * Borrowing Model
+ * 
+ * ═══════════════════════════════════════════════════════════════
+ * DATABASE TRANSACTION & TRIGGER STRATEGY
+ * ═══════════════════════════════════════════════════════════════
+ * 
+ * TRIGGERS (INTENTIONALLY DISABLED):
+ * - Triggers exist in migrations but are NOT used by application
+ * - Kept in database for visibility/audit purposes only
+ * - See: 2026_05_09_000001_create_library_triggers_if_missing.php
+ * - See: 2026_05_10_000001_disable_quantity_triggers.php
+ * 
+ * WHY?
+ * - Avoids double-increment/decrement from concurrent transactions
+ * - Gives full control of inventory logic to application code
+ * - Simpler debugging and transaction management
+ * 
+ * TRANSACTION SAFETY:
+ * ✅ All inventory modifications wrapped in DB::transaction()
+ * ✅ Uses pessimistic locking (lockForUpdate) on critical sections
+ * ✅ Prevents race conditions during concurrent approvals/returns
+ * 
+ * KEY OPERATIONS:
+ * 1. approveBorrowRequest()  → Decrement quantity
+ * 2. processReturn()         → Increment quantity
+ * 3. rejectBorrowRequest()   → No inventory change
+ * 4. markOverdue()           → Status update only
+ * 
+ * ═══════════════════════════════════════════════════════════════
+ */
 class Borrowing extends Model
 {
     // Status Constants

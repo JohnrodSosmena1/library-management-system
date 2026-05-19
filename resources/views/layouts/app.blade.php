@@ -103,9 +103,9 @@
             @elseif(Auth::guard('librarian')->check())
                 {{-- LIBRARIAN CARD --}}
                 <div class="librarian-card">
-                    <div class="librarian-av">{{ substr(Auth::guard('librarian')->user()->name, 0, 1) }}</div>
+                    <div class="librarian-av">{{ substr(Auth::guard('librarian')->user()->fullName(), 0, 1) }}</div>
                     <div>
-                        <div class="librarian-name">{{ Auth::guard('librarian')->user()->name }}</div>
+                        <div class="librarian-name">{{ Auth::guard('librarian')->user()->fullName() }}</div>
                         <div class="librarian-role">{{ Auth::guard('librarian')->user()->role }}</div>
                     </div>
                 </div>

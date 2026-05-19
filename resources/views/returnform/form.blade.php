@@ -28,7 +28,7 @@
                         <option value="">— Select a transaction —</option>
                         @foreach($activeBorrowings as $txn)
                             <option value="{{ $txn->id }}"
-                                    data-user="{{ $txn->user->name }}"
+data-user="{{ $txn->user->fullName() }}"
                                     data-book="{{ $txn->book->title }}"
                                     data-borrowed="{{ $txn->date_borrowed->format('Y-m-d') }}"
                                     data-due="{{ $txn->due_date->format('Y-m-d') }}"
@@ -36,7 +36,7 @@
                                     data-days-late="{{ $txn->days_late }}"
                                     data-penalty="{{ $txn->computed_penalty }}"
                                     {{ old('borrowing_id') == $txn->id ? 'selected' : '' }}>
-                                {{ $txn->formatted_id }} — {{ $txn->user->name }} — {{ $txn->book->title }}
+{{ $txn->formatted_id }} — {{ $txn->user->fullName() }} — {{ $txn->book->title }}
                                 @if($txn->status === 'Overdue') <span class="badge bg-danger">OVERDUE</span> @endif
                             </option>
                         @endforeach
