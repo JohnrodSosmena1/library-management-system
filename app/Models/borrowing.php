@@ -44,6 +44,7 @@ class Borrowing extends Model
     const STATUS_APPROVED = 'Approved';
     const STATUS_BORROWED = 'Borrowed';
     const STATUS_OVERDUE = 'Overdue';
+    const STATUS_RETURN_REQUESTED = 'Return Requested';
     const STATUS_RETURNED = 'Returned';
     const STATUS_REJECTED = 'Rejected';
 
@@ -90,7 +91,7 @@ class Borrowing extends Model
 
     public function getDaysLateAttribute(): int
     {
-        if ($this->status === 'Returned' && $this->return_date) {
+        if (in_array($this->status, ['Returned', 'Return Requested']) && $this->return_date) {
             $diff = $this->return_date->diffInDays($this->due_date, false);
             return $diff < 0 ? (int) abs($diff) : 0;
         }
@@ -116,7 +117,7 @@ class Borrowing extends Model
 
     public function scopeActive($query)
     {
-        return $query->whereIn('status', ['Borrowed', 'Overdue']);
+        return $query->whereIn('status', ['Borrowed', 'Overdue', 'Return Requested']);
     }
 
     public function scopeOverdue($query)

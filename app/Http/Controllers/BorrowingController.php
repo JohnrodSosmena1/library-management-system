@@ -201,8 +201,7 @@ class BorrowingController extends Controller
                     'status'         => Borrowing::STATUS_PENDING,
                 ]);
 
-                // NOTE: Quantity is NOT modified here. Updates handled on approval/return only.
-                // Database triggers are intentionally disabled - inventory managed in application code.
+                // NOTE: Quantity is NOT modified here. Updates handled on approval/return via database triggers.
 
                 return $borrowing;
             });
@@ -250,25 +249,14 @@ class BorrowingController extends Controller
                 $penalty    = $borrowing->computed_penalty;
                 $book = $borrowing->book;
 
-                $book = $book->lockForUpdate()->first();
-
-                $restoreQty = Borrowing::where('id', $borrowing->id)
-                    ->where('book_id', $book->id)
-                    ->whereIn('status', [Borrowing::STATUS_BORROWED, Borrowing::STATUS_OVERDUE])
-                    ->count();
-
                 $borrowing->update([
                     'return_date' => $returnDate,
                     'status'      => Borrowing::STATUS_RETURNED,
                     'penalty'     => $penalty,
                 ]);
 
-                // Restore inventory (triggers intentionally disabled - managed in app)
-                if ($restoreQty > 0) {
-                    $book->increment('quantity', $restoreQty);
-                    $book->status = 'Available';
-                    $book->save();
-                }
+                // Restore inventory via database trigger on status update to 'Returned'
+                // Trigger will auto-update book status to 'Available'
 
                 return $penalty > 0
                     ? "\"{$book->title}\" returned with a penalty of ₱{$penalty}."
@@ -439,12 +427,6 @@ class BorrowingController extends Controller
                     throw new \Exception("Book \"{$book->title}\" is out of stock.");
                 }
 
-                $book = $borrowing->book()->lockForUpdate()->first();
-                
-                if ($book->quantity <= 0) {
-                    throw new \Exception("Book \"{$book->title}\" is out of stock.");
-                }
-
                 $dateBorrowed = Carbon::parse($validated['date_borrowed']);
                 $dueDate = $dateBorrowed->copy()->addDays(Borrowing::LOAN_DAYS);
 
@@ -455,10 +437,12 @@ class BorrowingController extends Controller
                     'status' => Borrowing::STATUS_BORROWED,
                 ]);
 
-                // Decrement book quantity (triggers intentionally disabled - managed in app)
-                $book->decrement('quantity');
-                $book->status = $book->quantity > 0 ? 'Available' : 'Borrowed';
-                $book->save();
+                // Database trigger after_borrowing_insert will automatically:
+                // 1. Decrement book quantity
+                // 2. Update book status based on remaining quantity
+
+                // Refresh book to reflect trigger updates
+                $book->refresh();
 
                 return $book;
             });

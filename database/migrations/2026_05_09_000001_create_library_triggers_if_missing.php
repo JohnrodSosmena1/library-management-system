@@ -31,13 +31,19 @@ return new class extends Migration
             END
         ");
 
-        // 2) Update book status when borrowed
+        // 2) Decrement quantity and update book status when borrowed
         DB::unprepared("
             CREATE TRIGGER after_borrowing_insert
             AFTER INSERT ON borrowings
             FOR EACH ROW
             BEGIN
                 IF NEW.status = 'Borrowed' THEN
+                    -- decrement inventory
+                    UPDATE books
+                    SET quantity = GREATEST(quantity - 1, 0)
+                    WHERE id = NEW.book_id;
+
+                    -- update status based on remaining quantity
                     UPDATE books
                     SET status = CASE
                         WHEN quantity > 0 THEN 'Available'
@@ -49,18 +55,7 @@ return new class extends Migration
         ");
 
         // 3) Update book status when returned
-        DB::unprepared("
-            CREATE TRIGGER after_borrowing_return_update
-            AFTER UPDATE ON borrowings
-            FOR EACH ROW
-            BEGIN
-                IF NEW.status = 'Returned' AND OLD.status != 'Returned' THEN
-                    UPDATE books
-                    SET status = 'Available'
-                    WHERE id = NEW.book_id;
-                END IF;
-            END
-        ");
+        DB::unprepared("\n            CREATE TRIGGER after_borrowing_return_update\n            AFTER UPDATE ON borrowings\n            FOR EACH ROW\n            BEGIN\n                IF NEW.status = 'Returned' AND OLD.status != 'Returned' THEN\n                    -- restore inventory\n                    UPDATE books\n                    SET quantity = quantity + 1\n                    WHERE id = NEW.book_id;\n\n                    -- update status based on remaining quantity\n                    UPDATE books\n                    SET status = CASE\n                        WHEN quantity > 0 THEN 'Available'\n                        ELSE 'Borrowed'\n                    END\n                    WHERE id = NEW.book_id;\n                END IF;\n            END\n        ");
     }
 
     public function down(): void

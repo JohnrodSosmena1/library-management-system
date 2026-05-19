@@ -38,6 +38,7 @@ data-user="{{ $txn->user->fullName() }}"
                                     {{ old('borrowing_id') == $txn->id ? 'selected' : '' }}>
 {{ $txn->formatted_id }} — {{ $txn->user->fullName() }} — {{ $txn->book->title }}
                                 @if($txn->status === 'Overdue') <span class="badge bg-danger">OVERDUE</span> @endif
+                                @if($txn->status === 'Return Requested') <span class="badge bg-warning">RETURN REQUESTED</span> @endif
                             </option>
                         @endforeach
                     </select>
@@ -183,6 +184,8 @@ document.getElementById('txn-select').addEventListener('change', function () {
     
     const statusBadge = status === 'Overdue' 
         ? `<span class="badge bg-danger">${status} — ${daysLate} days late</span>`
+        : status === 'Return Requested'
+        ? `<span class="badge bg-warning">Return Requested</span>`
         : `<span class="badge bg-success">${status}</span>`;
     document.getElementById('d-status').innerHTML = statusBadge;
 

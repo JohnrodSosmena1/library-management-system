@@ -7,6 +7,7 @@ use App\Models\Borrowing;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class UserDashboardController extends Controller
 {
@@ -98,6 +99,9 @@ class UserDashboardController extends Controller
             'condition'    => 'required|in:Good,Slightly damaged,Damaged',
         ]);
 
+        // Ensure we update return using the shared admin flow behavior (inventory + transaction atomicity)
+        // and the correct inventory restoration logic used by BorrowingController.
+        // This prevents "returned" records from not appearing in admin return/transaction views.
         $borrowing = Borrowing::with('book')->findOrFail($validated['borrowing_id']);
         $user = Auth::guard('user')->user();
 
@@ -117,18 +121,30 @@ class UserDashboardController extends Controller
         $returnDate = Carbon::parse($validated['return_date']);
         $penalty = $borrowing->computed_penalty;
 
+        // Calculate restore quantity BEFORE updating status
+        $book = $borrowing->book()->lockForUpdate()->first();
+        $restoreQty = Borrowing::where('id', $borrowing->id)
+            ->where('book_id', $book->id)
+            ->whereIn('status', [Borrowing::STATUS_BORROWED, Borrowing::STATUS_OVERDUE])
+            ->count();
+
+        // Record the return so it appears in the admin Return Book page immediately.
         $borrowing->update([
             'return_date' => $returnDate,
             'status'      => Borrowing::STATUS_RETURNED,
             'penalty'     => $penalty,
         ]);
 
+
         // Restore book quantity and status
-        // Book quantity is handled by database triggers when borrowing status changes to "Returned".
-        // Do NOT manually increment here; otherwise quantity is added twice.
 
-
-        $book = $borrowing->book;
+        // Your library quantity triggers are disabled in app-level logic, and admin return logic restores quantity manually.
+        // Do the same here so inventory + status transitions are reflected consistently in admin views.
+        if ($restoreQty > 0) {
+            $book->increment('quantity', $restoreQty);
+            $book->status = 'Available';
+            $book->save();
+        }
 
         $msg = $penalty > 0
             ? "\"{$book->title}\" returned with penalty ₱" . number_format($penalty, 2) . "."
